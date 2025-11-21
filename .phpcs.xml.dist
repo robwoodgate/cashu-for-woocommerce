@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<ruleset name="Cashu WooCommerce Payment Processor Coding Standards">
+    <description>
+        PHPCS rules for the plugin, using WordPress Coding Standards and PHPCompatibilityWP.
+    </description>
+
+    <!-- Paths to scan -->
+    <file>./</file>
+
+    <!-- Things we do not want to scan -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/.git/*</exclude-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+
+    <!-- General PHPCS arguments -->
+    <arg name="basepath" value="."/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="8"/>
+    <arg value="sp"/>
+
+    <!-- WordPress Coding Standards -->
+    <rule ref="WordPress-Core"/>
+    <rule ref="WordPress-Extra"/>
+    <rule ref="WordPress-Docs"/>
+
+    <!-- Example of relaxed line length, tweak if you prefer stricter -->
+    <exclude name="Generic.Files.LineLength.TooLong"/>
+    <exclude name="Generic.Files.LineLength.MaxExceeded"/>
+
+    <!-- PHPCompatibilityWP, target PHP 8.3 and above -->
+    <config name="testVersion" value="8.3-"/>
+
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- You can selectively ignore rules per file or folder if needed
+    <rule ref="WordPress.Security.NonceVerification">
+        <exclude-pattern>*/path-to-safe-file.php</exclude-pattern>
+    </rule>
+    -->
+</ruleset>

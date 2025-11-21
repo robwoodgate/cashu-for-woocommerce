@@ -1,0 +1,25 @@
+{
+  "name": "cashu/cashu-for-woocommerce",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Cashu\\WC\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Rob Woodgate",
+      "homepage": "https://www.github.com/robwoodgate",
+      "role": "Developer"
+    }
+  ],
+  "require-dev": {
+    "wp-cli/i18n-command": "^2",
+    "phpunit/phpunit": "^12.4"
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "makepot": "wp i18n make-pot ."
+  }
+}

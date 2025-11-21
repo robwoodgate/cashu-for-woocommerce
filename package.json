@@ -1,0 +1,34 @@
+{
+  "name": "cashu-for-woocommerce",
+  "version": "0.1.0",
+  "author": "Rob Woodgate",
+  "license": "MIT",
+  "dependencies": {
+    "@cashu/cashu-ts": "^3.1.1"
+  },
+  "devDependencies": {
+    "@prettier/plugin-php": "^0.22.2",
+    "grunt": "^1.6.1",
+    "grunt-wp-i18n": "^1.0.3",
+    "grunt-wp-readme-to-markdown": "^2.1.0",
+    "prettier": "^3.3.3"
+  },
+  "prettier": {
+    "plugins": [
+      "@prettier/plugin-php"
+    ],
+    "printWidth": 90,
+    "useTabs": false,
+    "tabWidth": 2,
+    "singleQuote": true,
+    "braceStyle": "1tbs"
+  },
+  "scripts": {
+    "test": "composer test",
+    "format:check": "prettier -c cashu-for-woocommerce.php src",
+    "format": "prettier -w cashu-for-woocommerce.php src",
+    "start": "grunt default",
+    "readme": "grunt readme",
+    "i18n": "grunt i18n"
+  }
+}
