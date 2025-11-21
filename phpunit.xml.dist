@@ -6,10 +6,8 @@
     colors="true"
 >
     <testsuites>
-        <testsuite name="testing">
-            <directory>./tests</directory>
-            <!-- You can still exclude files if you want -->
-            <!-- <exclude>./tests/test-sample.php</exclude> -->
+        <testsuite name="all">
+            <directory suffix="Test.php">tests</directory>
         </testsuite>
     </testsuites>
 </phpunit>

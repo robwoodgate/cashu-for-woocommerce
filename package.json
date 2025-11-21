@@ -1,17 +1,27 @@
 {
   "name": "cashu-for-woocommerce",
+  "description": "Cashu For WooCommerce adds a secure Cashu payment gateway to your WooCommerce store",
   "version": "0.1.0",
   "author": "Rob Woodgate",
   "license": "MIT",
+  "keywords": [
+    "cashu"
+  ],
   "dependencies": {
-    "@cashu/cashu-ts": "^3.1.1"
+    "@cashu/cashu-ts": "^3.1.1",
+    "@gandlaf21/bolt11-decode": "^3.1.1",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@prettier/plugin-php": "^0.22.2",
+    "@wordpress/env": "^10.36.0",
     "grunt": "^1.6.1",
+    "grunt-cli": "^1.5.0",
     "grunt-wp-i18n": "^1.0.3",
     "grunt-wp-readme-to-markdown": "^2.1.0",
-    "prettier": "^3.3.3"
+    "prettier": "^3.3.3",
+    "@types/jquery": "^3.5.33",
+    "vite": "^7.2.4"
   },
   "prettier": {
     "plugins": [
@@ -25,10 +35,18 @@
   },
   "scripts": {
     "test": "composer test",
+    "lint:php": "composer stan",
     "format:check": "prettier -c cashu-for-woocommerce.php src",
-    "format": "prettier -w cashu-for-woocommerce.php src",
+    "format": "prettier -w cashu-for-woocommerce.php src tests",
     "start": "grunt default",
     "readme": "grunt readme",
-    "i18n": "grunt i18n"
+    "i18n": "grunt i18n",
+    "build": "vite build && npm run format && npm run start",
+    "wp-env:start": "wp-env start",
+    "wp-env:seed-store": "wp-env run cli wp plugin install wordpress-importer --activate && wp-env run cli wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=create",
+    "wp-env:clean": "wp-env clean",
+    "wp-env:stop": "wp-env stop",
+    "wp-env:destroy": "wp-env destroy",
+    "wp-env:reset": "wp-env clean && npm run wp-env:seed-store"
   }
 }

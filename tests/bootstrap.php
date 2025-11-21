@@ -1,26 +1,39 @@
 <?php
-/**
- * Simple PHPUnit bootstrap for the Cashu for WooCommerce plugin.
- * No WordPress test suite is loaded here.
- * @package Cashu_For_Woocommerce
- */
+declare(strict_types=1);
 
-// Path to project root.
-$projectRoot = dirname( __DIR__ );
+// 1. Load Composer autoloader
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (!file_exists($autoload)) {
+  echo "Run: composer install\n";
+  exit(1);
+}
+require_once $autoload;
 
-// Composer autoloader.
-$autoload = $projectRoot . '/vendor/autoload.php';
-if ( file_exists( $autoload ) ) {
-    require_once $autoload;
+// 2. Define plugin constants (so your classes don't explode)
+if (!defined('CASHU_WC_VERSION')) {
+  define('CASHU_WC_VERSION', '0.1.0');
+}
+if (!defined('CASHU_WC_PLUGIN_FILE_PATH')) {
+  define('CASHU_WC_PLUGIN_FILE_PATH', dirname(__DIR__));
+}
+if (!defined('CASHU_WC_PLUGIN_URL')) {
+  define('CASHU_WC_PLUGIN_URL', 'file://' . dirname(__DIR__));
+}
+if (!defined('CASHU_WC_PLUGIN_ID')) {
+  define('CASHU_WC_PLUGIN_ID', 'cashu-for-woocommerce');
 }
 
-// Load the main plugin file if you want its functions to be available in tests.
-// Comment this out if you only test classes in src/.
-$pluginFile = $projectRoot . '/cashu-for-woocommerce.php';
-if ( file_exists( $pluginFile ) ) {
-    require_once $pluginFile;
+// 3. Mock WordPress functions used in your code
+if (!function_exists('get_option')) {
+  function get_option(string $option, $default = false) {
+    // Return fake values for tests
+    $defaults = [
+      'cashu_lightning_address' => 'rob@nostrly.com',
+      'cashu_mint_url' => 'https://8333.space:3338',
+      'cashu_modal_checkout' => 'yes',
+    ];
+    return $defaults[$option] ?? $default;
+  }
 }
 
-// You can define simple helpers or constants here if needed for tests.
-// For example:
-// define( 'CASHU_FOR_WOOCOMMERCE_ENV', 'test' );
+echo "Bootstrap loaded – Cashu ready for testing!\n";

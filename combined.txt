@@ -1,0 +1,4307 @@
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/.phpcs.xml.dist
+<?xml version="1.0"?>
+<ruleset name="Cashu WooCommerce Payment Processor Coding Standards">
+	<description>
+		PHPCS rules for the plugin, using WordPress Coding Standards and PHPCompatibilityWP.
+	</description>
+
+	<!-- Paths to scan -->
+	<file>./</file>
+
+	<!-- Things we do not want to scan -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/.git/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<!-- General PHPCS arguments -->
+	<arg name="basepath" value="."/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+	<arg value="sp"/>
+
+	<!-- WordPress Coding Standards -->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Extra"/>
+	<rule ref="WordPress-Docs"/>
+
+	<!-- Example of relaxed line length, tweak if you prefer stricter -->
+	<exclude name="Generic.Files.LineLength.TooLong"/>
+	<exclude name="Generic.Files.LineLength.MaxExceeded"/>
+
+	<!-- PHPCompatibilityWP, target PHP 8.3 and above -->
+	<config name="testVersion" value="8.3-"/>
+
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- You can selectively ignore rules per file or folder if needed
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude-pattern>*/path-to-safe-file.php</exclude-pattern>
+	</rule>
+	-->
+</ruleset>
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/Gruntfile.js
+module.exports = function( grunt ) {
+
+	'use strict';
+
+	// Project configuration
+	grunt.initConfig( {
+
+		pkg: grunt.file.readJSON( 'package.json' ),
+
+		addtextdomain: {
+			options: {
+				textdomain: 'cashu-for-woocommerce',
+			},
+			update_all_domains: {
+				options: {
+					updateDomains: true
+				},
+				src: [ '*.php', '**/*.php', '!\.git/**/*', '!bin/**/*', '!node_modules/**/*', '!tests/**/*' ]
+			}
+		},
+
+		wp_readme_to_markdown: {
+			your_target: {
+				files: {
+					'README.md': 'readme.txt'
+				}
+			},
+		},
+
+		makepot: {
+			target: {
+				options: {
+					domainPath: '/languages',
+					exclude: [ '\.git/*', 'bin/*', 'node_modules/*', 'tests/*' ],
+					mainFile: 'cashu-for-woocommerce.php',
+					potFilename: 'cashu-for-woocommerce.pot',
+					potHeaders: {
+						poedit: true,
+						'x-poedit-keywordslist': true
+					},
+					type: 'wp-plugin',
+					updateTimestamp: true
+				}
+			}
+		},
+	} );
+
+	grunt.loadNpmTasks( 'grunt-wp-i18n' );
+	grunt.loadNpmTasks( 'grunt-wp-readme-to-markdown' );
+	grunt.registerTask( 'default', [ 'i18n','readme' ] );
+	grunt.registerTask( 'i18n', ['addtextdomain', 'makepot'] );
+	grunt.registerTask( 'readme', ['wp_readme_to_markdown'] );
+
+	grunt.util.linefeed = '\n';
+
+};
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/composer.lock
+{
+	"_readme": [
+		"This file locks the dependencies of your project to a known state",
+		"Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+		"This file is @generated automatically"
+	],
+	"content-hash": "c008ebe4a3432986f8d2f5b5a07691cf",
+	"packages": [],
+	"packages-dev": [
+		{
+			"name": "myclabs/deep-copy",
+			"version": "1.13.4",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/myclabs/DeepCopy.git",
+				"reference": "07d290f0c47959fd5eed98c95ee5602db07e0b6a"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/myclabs/DeepCopy/zipball/07d290f0c47959fd5eed98c95ee5602db07e0b6a",
+				"reference": "07d290f0c47959fd5eed98c95ee5602db07e0b6a",
+				"shasum": ""
+			},
+			"require": {
+				"php": "^7.1 || ^8.0"
+			},
+			"conflict": {
+				"doctrine/collections": "<1.6.8",
+				"doctrine/common": "<2.13.3 || >=3 <3.2.2"
+			},
+			"require-dev": {
+				"doctrine/collections": "^1.6.8",
+				"doctrine/common": "^2.13.3 || ^3.2.2",
+				"phpspec/prophecy": "^1.10",
+				"phpunit/phpunit": "^7.5.20 || ^8.5.23 || ^9.5.13"
+			},
+			"type": "library",
+			"autoload": {
+				"files": [
+					"src/DeepCopy/deep_copy.php"
+				],
+				"psr-4": {
+					"DeepCopy\\": "src/DeepCopy/"
+				}
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"MIT"
+			],
+			"description": "Create deep copies (clones) of your objects",
+			"keywords": [
+				"clone",
+				"copy",
+				"duplicate",
+				"object",
+				"object graph"
+			],
+			"support": {
+				"issues": "https://github.com/myclabs/DeepCopy/issues",
+				"source": "https://github.com/myclabs/DeepCopy/tree/1.13.4"
+			},
+			"funding": [
+				{
+					"url": "https://tidelift.com/funding/github/packagist/myclabs/deep-copy",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-01T08:46:24+00:00"
+		},
+		{
+			"name": "nikic/php-parser",
+			"version": "v5.6.2",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/nikic/PHP-Parser.git",
+				"reference": "3a454ca033b9e06b63282ce19562e892747449bb"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/3a454ca033b9e06b63282ce19562e892747449bb",
+				"reference": "3a454ca033b9e06b63282ce19562e892747449bb",
+				"shasum": ""
+			},
+			"require": {
+				"ext-ctype": "*",
+				"ext-json": "*",
+				"ext-tokenizer": "*",
+				"php": ">=7.4"
+			},
+			"require-dev": {
+				"ircmaxell/php-yacc": "^0.0.7",
+				"phpunit/phpunit": "^9.0"
+			},
+			"bin": [
+				"bin/php-parse"
+			],
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-master": "5.x-dev"
+				}
+			},
+			"autoload": {
+				"psr-4": {
+					"PhpParser\\": "lib/PhpParser"
+				}
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Nikita Popov"
+				}
+			],
+			"description": "A PHP parser written in PHP",
+			"keywords": [
+				"parser",
+				"php"
+			],
+			"support": {
+				"issues": "https://github.com/nikic/PHP-Parser/issues",
+				"source": "https://github.com/nikic/PHP-Parser/tree/v5.6.2"
+			},
+			"time": "2025-10-21T19:32:17+00:00"
+		},
+		{
+			"name": "phar-io/manifest",
+			"version": "2.0.4",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/phar-io/manifest.git",
+				"reference": "54750ef60c58e43759730615a392c31c80e23176"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/phar-io/manifest/zipball/54750ef60c58e43759730615a392c31c80e23176",
+				"reference": "54750ef60c58e43759730615a392c31c80e23176",
+				"shasum": ""
+			},
+			"require": {
+				"ext-dom": "*",
+				"ext-libxml": "*",
+				"ext-phar": "*",
+				"ext-xmlwriter": "*",
+				"phar-io/version": "^3.0.1",
+				"php": "^7.2 || ^8.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-master": "2.0.x-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Arne Blankerts",
+					"email": "arne@blankerts.de",
+					"role": "Developer"
+				},
+				{
+					"name": "Sebastian Heuer",
+					"email": "sebastian@phpeople.de",
+					"role": "Developer"
+				},
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "Developer"
+				}
+			],
+			"description": "Component for reading phar.io manifest information from a PHP Archive (PHAR)",
+			"support": {
+				"issues": "https://github.com/phar-io/manifest/issues",
+				"source": "https://github.com/phar-io/manifest/tree/2.0.4"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/theseer",
+					"type": "github"
+				}
+			],
+			"time": "2024-03-03T12:33:53+00:00"
+		},
+		{
+			"name": "phar-io/version",
+			"version": "3.2.1",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/phar-io/version.git",
+				"reference": "4f7fd7836c6f332bb2933569e566a0d6c4cbed74"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/phar-io/version/zipball/4f7fd7836c6f332bb2933569e566a0d6c4cbed74",
+				"reference": "4f7fd7836c6f332bb2933569e566a0d6c4cbed74",
+				"shasum": ""
+			},
+			"require": {
+				"php": "^7.2 || ^8.0"
+			},
+			"type": "library",
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Arne Blankerts",
+					"email": "arne@blankerts.de",
+					"role": "Developer"
+				},
+				{
+					"name": "Sebastian Heuer",
+					"email": "sebastian@phpeople.de",
+					"role": "Developer"
+				},
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "Developer"
+				}
+			],
+			"description": "Library for handling version information and constraints",
+			"support": {
+				"issues": "https://github.com/phar-io/version/issues",
+				"source": "https://github.com/phar-io/version/tree/3.2.1"
+			},
+			"time": "2022-02-21T01:04:05+00:00"
+		},
+		{
+			"name": "phpunit/php-code-coverage",
+			"version": "12.4.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/php-code-coverage.git",
+				"reference": "67e8aed88f93d0e6e1cb7effe1a2dfc2fee6022c"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/67e8aed88f93d0e6e1cb7effe1a2dfc2fee6022c",
+				"reference": "67e8aed88f93d0e6e1cb7effe1a2dfc2fee6022c",
+				"shasum": ""
+			},
+			"require": {
+				"ext-dom": "*",
+				"ext-libxml": "*",
+				"ext-xmlwriter": "*",
+				"nikic/php-parser": "^5.6.1",
+				"php": ">=8.3",
+				"phpunit/php-file-iterator": "^6.0",
+				"phpunit/php-text-template": "^5.0",
+				"sebastian/complexity": "^5.0",
+				"sebastian/environment": "^8.0.3",
+				"sebastian/lines-of-code": "^4.0",
+				"sebastian/version": "^6.0",
+				"theseer/tokenizer": "^1.2.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.3.7"
+			},
+			"suggest": {
+				"ext-pcov": "PHP extension that provides line coverage",
+				"ext-xdebug": "PHP extension that provides line coverage as well as branch and path coverage"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "12.4.x-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Library that provides collection, processing, and rendering functionality for PHP code coverage information.",
+			"homepage": "https://github.com/sebastianbergmann/php-code-coverage",
+			"keywords": [
+				"coverage",
+				"testing",
+				"xunit"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/php-code-coverage/issues",
+				"security": "https://github.com/sebastianbergmann/php-code-coverage/security/policy",
+				"source": "https://github.com/sebastianbergmann/php-code-coverage/tree/12.4.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/phpunit/php-code-coverage",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-09-24T13:44:41+00:00"
+		},
+		{
+			"name": "phpunit/php-file-iterator",
+			"version": "6.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/php-file-iterator.git",
+				"reference": "961bc913d42fe24a257bfff826a5068079ac7782"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/php-file-iterator/zipball/961bc913d42fe24a257bfff826a5068079ac7782",
+				"reference": "961bc913d42fe24a257bfff826a5068079ac7782",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "6.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "FilterIterator implementation that filters files based on a list of suffixes.",
+			"homepage": "https://github.com/sebastianbergmann/php-file-iterator/",
+			"keywords": [
+				"filesystem",
+				"iterator"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/php-file-iterator/issues",
+				"security": "https://github.com/sebastianbergmann/php-file-iterator/security/policy",
+				"source": "https://github.com/sebastianbergmann/php-file-iterator/tree/6.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:58:37+00:00"
+		},
+		{
+			"name": "phpunit/php-invoker",
+			"version": "6.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/php-invoker.git",
+				"reference": "12b54e689b07a25a9b41e57736dfab6ec9ae5406"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/php-invoker/zipball/12b54e689b07a25a9b41e57736dfab6ec9ae5406",
+				"reference": "12b54e689b07a25a9b41e57736dfab6ec9ae5406",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"ext-pcntl": "*",
+				"phpunit/phpunit": "^12.0"
+			},
+			"suggest": {
+				"ext-pcntl": "*"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "6.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Invoke callables with a timeout",
+			"homepage": "https://github.com/sebastianbergmann/php-invoker/",
+			"keywords": [
+				"process"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/php-invoker/issues",
+				"security": "https://github.com/sebastianbergmann/php-invoker/security/policy",
+				"source": "https://github.com/sebastianbergmann/php-invoker/tree/6.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:58:58+00:00"
+		},
+		{
+			"name": "phpunit/php-text-template",
+			"version": "5.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/php-text-template.git",
+				"reference": "e1367a453f0eda562eedb4f659e13aa900d66c53"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/php-text-template/zipball/e1367a453f0eda562eedb4f659e13aa900d66c53",
+				"reference": "e1367a453f0eda562eedb4f659e13aa900d66c53",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "5.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Simple template engine.",
+			"homepage": "https://github.com/sebastianbergmann/php-text-template/",
+			"keywords": [
+				"template"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/php-text-template/issues",
+				"security": "https://github.com/sebastianbergmann/php-text-template/security/policy",
+				"source": "https://github.com/sebastianbergmann/php-text-template/tree/5.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:59:16+00:00"
+		},
+		{
+			"name": "phpunit/php-timer",
+			"version": "8.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/php-timer.git",
+				"reference": "f258ce36aa457f3aa3339f9ed4c81fc66dc8c2cc"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/php-timer/zipball/f258ce36aa457f3aa3339f9ed4c81fc66dc8c2cc",
+				"reference": "f258ce36aa457f3aa3339f9ed4c81fc66dc8c2cc",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "8.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Utility class for timing",
+			"homepage": "https://github.com/sebastianbergmann/php-timer/",
+			"keywords": [
+				"timer"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/php-timer/issues",
+				"security": "https://github.com/sebastianbergmann/php-timer/security/policy",
+				"source": "https://github.com/sebastianbergmann/php-timer/tree/8.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:59:38+00:00"
+		},
+		{
+			"name": "phpunit/phpunit",
+			"version": "12.4.4",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/phpunit.git",
+				"reference": "9253ec75a672e39fcc9d85bdb61448215b8162c7"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/9253ec75a672e39fcc9d85bdb61448215b8162c7",
+				"reference": "9253ec75a672e39fcc9d85bdb61448215b8162c7",
+				"shasum": ""
+			},
+			"require": {
+				"ext-dom": "*",
+				"ext-json": "*",
+				"ext-libxml": "*",
+				"ext-mbstring": "*",
+				"ext-xml": "*",
+				"ext-xmlwriter": "*",
+				"myclabs/deep-copy": "^1.13.4",
+				"phar-io/manifest": "^2.0.4",
+				"phar-io/version": "^3.2.1",
+				"php": ">=8.3",
+				"phpunit/php-code-coverage": "^12.4.0",
+				"phpunit/php-file-iterator": "^6.0.0",
+				"phpunit/php-invoker": "^6.0.0",
+				"phpunit/php-text-template": "^5.0.0",
+				"phpunit/php-timer": "^8.0.0",
+				"sebastian/cli-parser": "^4.2.0",
+				"sebastian/comparator": "^7.1.3",
+				"sebastian/diff": "^7.0.0",
+				"sebastian/environment": "^8.0.3",
+				"sebastian/exporter": "^7.0.2",
+				"sebastian/global-state": "^8.0.2",
+				"sebastian/object-enumerator": "^7.0.0",
+				"sebastian/type": "^6.0.3",
+				"sebastian/version": "^6.0.0",
+				"staabm/side-effects-detector": "^1.0.5"
+			},
+			"bin": [
+				"phpunit"
+			],
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "12.4-dev"
+				}
+			},
+			"autoload": {
+				"files": [
+					"src/Framework/Assert/Functions.php"
+				],
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "The PHP Unit Testing framework.",
+			"homepage": "https://phpunit.de/",
+			"keywords": [
+				"phpunit",
+				"testing",
+				"xunit"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/phpunit/issues",
+				"security": "https://github.com/sebastianbergmann/phpunit/security/policy",
+				"source": "https://github.com/sebastianbergmann/phpunit/tree/12.4.4"
+			},
+			"funding": [
+				{
+					"url": "https://phpunit.de/sponsors.html",
+					"type": "custom"
+				},
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/phpunit/phpunit",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-11-21T07:39:11+00:00"
+		},
+		{
+			"name": "sebastian/cli-parser",
+			"version": "4.2.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/cli-parser.git",
+				"reference": "90f41072d220e5c40df6e8635f5dafba2d9d4d04"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/cli-parser/zipball/90f41072d220e5c40df6e8635f5dafba2d9d4d04",
+				"reference": "90f41072d220e5c40df6e8635f5dafba2d9d4d04",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "4.2-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Library for parsing CLI options",
+			"homepage": "https://github.com/sebastianbergmann/cli-parser",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/cli-parser/issues",
+				"security": "https://github.com/sebastianbergmann/cli-parser/security/policy",
+				"source": "https://github.com/sebastianbergmann/cli-parser/tree/4.2.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/cli-parser",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-09-14T09:36:45+00:00"
+		},
+		{
+			"name": "sebastian/comparator",
+			"version": "7.1.3",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/comparator.git",
+				"reference": "dc904b4bb3ab070865fa4068cd84f3da8b945148"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/comparator/zipball/dc904b4bb3ab070865fa4068cd84f3da8b945148",
+				"reference": "dc904b4bb3ab070865fa4068cd84f3da8b945148",
+				"shasum": ""
+			},
+			"require": {
+				"ext-dom": "*",
+				"ext-mbstring": "*",
+				"php": ">=8.3",
+				"sebastian/diff": "^7.0",
+				"sebastian/exporter": "^7.0"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.2"
+			},
+			"suggest": {
+				"ext-bcmath": "For comparing BcMath\\Number objects"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "7.1-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				},
+				{
+					"name": "Jeff Welch",
+					"email": "whatthejeff@gmail.com"
+				},
+				{
+					"name": "Volker Dusch",
+					"email": "github@wallbash.com"
+				},
+				{
+					"name": "Bernhard Schussek",
+					"email": "bschussek@2bepublished.at"
+				}
+			],
+			"description": "Provides the functionality to compare PHP values for equality",
+			"homepage": "https://github.com/sebastianbergmann/comparator",
+			"keywords": [
+				"comparator",
+				"compare",
+				"equality"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/comparator/issues",
+				"security": "https://github.com/sebastianbergmann/comparator/security/policy",
+				"source": "https://github.com/sebastianbergmann/comparator/tree/7.1.3"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/comparator",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-20T11:27:00+00:00"
+		},
+		{
+			"name": "sebastian/complexity",
+			"version": "5.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/complexity.git",
+				"reference": "bad4316aba5303d0221f43f8cee37eb58d384bbb"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/complexity/zipball/bad4316aba5303d0221f43f8cee37eb58d384bbb",
+				"reference": "bad4316aba5303d0221f43f8cee37eb58d384bbb",
+				"shasum": ""
+			},
+			"require": {
+				"nikic/php-parser": "^5.0",
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "5.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Library for calculating the complexity of PHP code units",
+			"homepage": "https://github.com/sebastianbergmann/complexity",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/complexity/issues",
+				"security": "https://github.com/sebastianbergmann/complexity/security/policy",
+				"source": "https://github.com/sebastianbergmann/complexity/tree/5.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:55:25+00:00"
+		},
+		{
+			"name": "sebastian/diff",
+			"version": "7.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/diff.git",
+				"reference": "7ab1ea946c012266ca32390913653d844ecd085f"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/diff/zipball/7ab1ea946c012266ca32390913653d844ecd085f",
+				"reference": "7ab1ea946c012266ca32390913653d844ecd085f",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0",
+				"symfony/process": "^7.2"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "7.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				},
+				{
+					"name": "Kore Nordmann",
+					"email": "mail@kore-nordmann.de"
+				}
+			],
+			"description": "Diff implementation",
+			"homepage": "https://github.com/sebastianbergmann/diff",
+			"keywords": [
+				"diff",
+				"udiff",
+				"unidiff",
+				"unified diff"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/diff/issues",
+				"security": "https://github.com/sebastianbergmann/diff/security/policy",
+				"source": "https://github.com/sebastianbergmann/diff/tree/7.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:55:46+00:00"
+		},
+		{
+			"name": "sebastian/environment",
+			"version": "8.0.3",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/environment.git",
+				"reference": "24a711b5c916efc6d6e62aa65aa2ec98fef77f68"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/environment/zipball/24a711b5c916efc6d6e62aa65aa2ec98fef77f68",
+				"reference": "24a711b5c916efc6d6e62aa65aa2ec98fef77f68",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"suggest": {
+				"ext-posix": "*"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "8.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				}
+			],
+			"description": "Provides functionality to handle HHVM/PHP environments",
+			"homepage": "https://github.com/sebastianbergmann/environment",
+			"keywords": [
+				"Xdebug",
+				"environment",
+				"hhvm"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/environment/issues",
+				"security": "https://github.com/sebastianbergmann/environment/security/policy",
+				"source": "https://github.com/sebastianbergmann/environment/tree/8.0.3"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/environment",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-12T14:11:56+00:00"
+		},
+		{
+			"name": "sebastian/exporter",
+			"version": "7.0.2",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/exporter.git",
+				"reference": "016951ae10980765e4e7aee491eb288c64e505b7"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/exporter/zipball/016951ae10980765e4e7aee491eb288c64e505b7",
+				"reference": "016951ae10980765e4e7aee491eb288c64e505b7",
+				"shasum": ""
+			},
+			"require": {
+				"ext-mbstring": "*",
+				"php": ">=8.3",
+				"sebastian/recursion-context": "^7.0"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "7.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				},
+				{
+					"name": "Jeff Welch",
+					"email": "whatthejeff@gmail.com"
+				},
+				{
+					"name": "Volker Dusch",
+					"email": "github@wallbash.com"
+				},
+				{
+					"name": "Adam Harvey",
+					"email": "aharvey@php.net"
+				},
+				{
+					"name": "Bernhard Schussek",
+					"email": "bschussek@gmail.com"
+				}
+			],
+			"description": "Provides the functionality to export PHP variables for visualization",
+			"homepage": "https://www.github.com/sebastianbergmann/exporter",
+			"keywords": [
+				"export",
+				"exporter"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/exporter/issues",
+				"security": "https://github.com/sebastianbergmann/exporter/security/policy",
+				"source": "https://github.com/sebastianbergmann/exporter/tree/7.0.2"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/exporter",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-09-24T06:16:11+00:00"
+		},
+		{
+			"name": "sebastian/global-state",
+			"version": "8.0.2",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/global-state.git",
+				"reference": "ef1377171613d09edd25b7816f05be8313f9115d"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/global-state/zipball/ef1377171613d09edd25b7816f05be8313f9115d",
+				"reference": "ef1377171613d09edd25b7816f05be8313f9115d",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3",
+				"sebastian/object-reflector": "^5.0",
+				"sebastian/recursion-context": "^7.0"
+			},
+			"require-dev": {
+				"ext-dom": "*",
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "8.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				}
+			],
+			"description": "Snapshotting of global state",
+			"homepage": "https://www.github.com/sebastianbergmann/global-state",
+			"keywords": [
+				"global state"
+			],
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/global-state/issues",
+				"security": "https://github.com/sebastianbergmann/global-state/security/policy",
+				"source": "https://github.com/sebastianbergmann/global-state/tree/8.0.2"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/global-state",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-29T11:29:25+00:00"
+		},
+		{
+			"name": "sebastian/lines-of-code",
+			"version": "4.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/lines-of-code.git",
+				"reference": "97ffee3bcfb5805568d6af7f0f893678fc076d2f"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/lines-of-code/zipball/97ffee3bcfb5805568d6af7f0f893678fc076d2f",
+				"reference": "97ffee3bcfb5805568d6af7f0f893678fc076d2f",
+				"shasum": ""
+			},
+			"require": {
+				"nikic/php-parser": "^5.0",
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "4.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Library for counting the lines of code in PHP source code",
+			"homepage": "https://github.com/sebastianbergmann/lines-of-code",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/lines-of-code/issues",
+				"security": "https://github.com/sebastianbergmann/lines-of-code/security/policy",
+				"source": "https://github.com/sebastianbergmann/lines-of-code/tree/4.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:57:28+00:00"
+		},
+		{
+			"name": "sebastian/object-enumerator",
+			"version": "7.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/object-enumerator.git",
+				"reference": "1effe8e9b8e068e9ae228e542d5d11b5d16db894"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/object-enumerator/zipball/1effe8e9b8e068e9ae228e542d5d11b5d16db894",
+				"reference": "1effe8e9b8e068e9ae228e542d5d11b5d16db894",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3",
+				"sebastian/object-reflector": "^5.0",
+				"sebastian/recursion-context": "^7.0"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "7.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				}
+			],
+			"description": "Traverses array structures and object graphs to enumerate all referenced objects",
+			"homepage": "https://github.com/sebastianbergmann/object-enumerator/",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/object-enumerator/issues",
+				"security": "https://github.com/sebastianbergmann/object-enumerator/security/policy",
+				"source": "https://github.com/sebastianbergmann/object-enumerator/tree/7.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:57:48+00:00"
+		},
+		{
+			"name": "sebastian/object-reflector",
+			"version": "5.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/object-reflector.git",
+				"reference": "4bfa827c969c98be1e527abd576533293c634f6a"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/object-reflector/zipball/4bfa827c969c98be1e527abd576533293c634f6a",
+				"reference": "4bfa827c969c98be1e527abd576533293c634f6a",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "5.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				}
+			],
+			"description": "Allows reflection of object attributes, including inherited and non-public ones",
+			"homepage": "https://github.com/sebastianbergmann/object-reflector/",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/object-reflector/issues",
+				"security": "https://github.com/sebastianbergmann/object-reflector/security/policy",
+				"source": "https://github.com/sebastianbergmann/object-reflector/tree/5.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T04:58:17+00:00"
+		},
+		{
+			"name": "sebastian/recursion-context",
+			"version": "7.0.1",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/recursion-context.git",
+				"reference": "0b01998a7d5b1f122911a66bebcb8d46f0c82d8c"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/recursion-context/zipball/0b01998a7d5b1f122911a66bebcb8d46f0c82d8c",
+				"reference": "0b01998a7d5b1f122911a66bebcb8d46f0c82d8c",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "7.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de"
+				},
+				{
+					"name": "Jeff Welch",
+					"email": "whatthejeff@gmail.com"
+				},
+				{
+					"name": "Adam Harvey",
+					"email": "aharvey@php.net"
+				}
+			],
+			"description": "Provides functionality to recursively process PHP variables",
+			"homepage": "https://github.com/sebastianbergmann/recursion-context",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/recursion-context/issues",
+				"security": "https://github.com/sebastianbergmann/recursion-context/security/policy",
+				"source": "https://github.com/sebastianbergmann/recursion-context/tree/7.0.1"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/recursion-context",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-13T04:44:59+00:00"
+		},
+		{
+			"name": "sebastian/type",
+			"version": "6.0.3",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/type.git",
+				"reference": "e549163b9760b8f71f191651d22acf32d56d6d4d"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/type/zipball/e549163b9760b8f71f191651d22acf32d56d6d4d",
+				"reference": "e549163b9760b8f71f191651d22acf32d56d6d4d",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"require-dev": {
+				"phpunit/phpunit": "^12.0"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "6.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Collection of value objects that represent the types of the PHP type system",
+			"homepage": "https://github.com/sebastianbergmann/type",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/type/issues",
+				"security": "https://github.com/sebastianbergmann/type/security/policy",
+				"source": "https://github.com/sebastianbergmann/type/tree/6.0.3"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				},
+				{
+					"url": "https://liberapay.com/sebastianbergmann",
+					"type": "liberapay"
+				},
+				{
+					"url": "https://thanks.dev/u/gh/sebastianbergmann",
+					"type": "thanks_dev"
+				},
+				{
+					"url": "https://tidelift.com/funding/github/packagist/sebastian/type",
+					"type": "tidelift"
+				}
+			],
+			"time": "2025-08-09T06:57:12+00:00"
+		},
+		{
+			"name": "sebastian/version",
+			"version": "6.0.0",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/sebastianbergmann/version.git",
+				"reference": "3e6ccf7657d4f0a59200564b08cead899313b53c"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/sebastianbergmann/version/zipball/3e6ccf7657d4f0a59200564b08cead899313b53c",
+				"reference": "3e6ccf7657d4f0a59200564b08cead899313b53c",
+				"shasum": ""
+			},
+			"require": {
+				"php": ">=8.3"
+			},
+			"type": "library",
+			"extra": {
+				"branch-alias": {
+					"dev-main": "6.0-dev"
+				}
+			},
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Sebastian Bergmann",
+					"email": "sebastian@phpunit.de",
+					"role": "lead"
+				}
+			],
+			"description": "Library that helps with managing the version number of Git-hosted PHP projects",
+			"homepage": "https://github.com/sebastianbergmann/version",
+			"support": {
+				"issues": "https://github.com/sebastianbergmann/version/issues",
+				"security": "https://github.com/sebastianbergmann/version/security/policy",
+				"source": "https://github.com/sebastianbergmann/version/tree/6.0.0"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/sebastianbergmann",
+					"type": "github"
+				}
+			],
+			"time": "2025-02-07T05:00:38+00:00"
+		},
+		{
+			"name": "staabm/side-effects-detector",
+			"version": "1.0.5",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/staabm/side-effects-detector.git",
+				"reference": "d8334211a140ce329c13726d4a715adbddd0a163"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/staabm/side-effects-detector/zipball/d8334211a140ce329c13726d4a715adbddd0a163",
+				"reference": "d8334211a140ce329c13726d4a715adbddd0a163",
+				"shasum": ""
+			},
+			"require": {
+				"ext-tokenizer": "*",
+				"php": "^7.4 || ^8.0"
+			},
+			"require-dev": {
+				"phpstan/extension-installer": "^1.4.3",
+				"phpstan/phpstan": "^1.12.6",
+				"phpunit/phpunit": "^9.6.21",
+				"symfony/var-dumper": "^5.4.43",
+				"tomasvotruba/type-coverage": "1.0.0",
+				"tomasvotruba/unused-public": "1.0.0"
+			},
+			"type": "library",
+			"autoload": {
+				"classmap": [
+					"lib/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"MIT"
+			],
+			"description": "A static analysis tool to detect side effects in PHP code",
+			"keywords": [
+				"static analysis"
+			],
+			"support": {
+				"issues": "https://github.com/staabm/side-effects-detector/issues",
+				"source": "https://github.com/staabm/side-effects-detector/tree/1.0.5"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/staabm",
+					"type": "github"
+				}
+			],
+			"time": "2024-10-20T05:08:20+00:00"
+		},
+		{
+			"name": "theseer/tokenizer",
+			"version": "1.3.1",
+			"source": {
+				"type": "git",
+				"url": "https://github.com/theseer/tokenizer.git",
+				"reference": "b7489ce515e168639d17feec34b8847c326b0b3c"
+			},
+			"dist": {
+				"type": "zip",
+				"url": "https://api.github.com/repos/theseer/tokenizer/zipball/b7489ce515e168639d17feec34b8847c326b0b3c",
+				"reference": "b7489ce515e168639d17feec34b8847c326b0b3c",
+				"shasum": ""
+			},
+			"require": {
+				"ext-dom": "*",
+				"ext-tokenizer": "*",
+				"ext-xmlwriter": "*",
+				"php": "^7.2 || ^8.0"
+			},
+			"type": "library",
+			"autoload": {
+				"classmap": [
+					"src/"
+				]
+			},
+			"notification-url": "https://packagist.org/downloads/",
+			"license": [
+				"BSD-3-Clause"
+			],
+			"authors": [
+				{
+					"name": "Arne Blankerts",
+					"email": "arne@blankerts.de",
+					"role": "Developer"
+				}
+			],
+			"description": "A small library for converting tokenized PHP source code into XML and potentially other formats",
+			"support": {
+				"issues": "https://github.com/theseer/tokenizer/issues",
+				"source": "https://github.com/theseer/tokenizer/tree/1.3.1"
+			},
+			"funding": [
+				{
+					"url": "https://github.com/theseer",
+					"type": "github"
+				}
+			],
+			"time": "2025-11-17T20:03:58+00:00"
+		}
+	],
+	"aliases": [],
+	"minimum-stability": "stable",
+	"stability-flags": [],
+	"prefer-stable": false,
+	"prefer-lowest": false,
+	"platform": [],
+	"platform-dev": [],
+	"plugin-api-version": "2.3.0"
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/tests/sampleTest.php
+<?php
+/**
+ * Class SampleTest
+ *
+ * @package Cashu_For_Woocommerce
+ */
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+final class SampleTest extends TestCase {
+  public function test_true_is_true(): void {
+	$this->assertTrue(true);
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/tests/Unit/Helpers/FiatConversionTest.php
+<?php
+declare(strict_types=1);
+
+use Cashu\WC\Helpers\CashuHelper;
+use PHPUnit\Framework\TestCase;
+
+class FiatConversionTest extends TestCase {
+  private CashuHelper $helper;
+
+  protected function setUp(): void {
+	if (!function_exists('wp_remote_get')) {
+	  $this->markTestSkipped('wp_remote_get not available in this test environment.');
+	}
+	$this->helper = new CashuHelper();
+  }
+
+  public function test_fiat_to_sats_returns_integer(): void {
+	$sats = $this->helper->fiatToSats(10.0, 'usd');
+	$this->assertIsInt($sats);
+	$this->assertGreaterThan(10000, $sats); // sanity check
+  }
+
+  public function test_fiat_to_sats_is_reasonable(): void {
+	// As of Nov 2025, 1 USD ≈ 1000–2000 sats
+	$sats = $this->helper->fiatToSats(1.0, 'usd');
+	$this->assertGreaterThan(800, $sats);
+	$this->assertLessThan(5000, $sats);
+  }
+
+  public function test_handles_different_currencies(): void {
+	$satsUsd = $this->helper->fiatToSats(100.0, 'usd');
+	$satsEur = $this->helper->fiatToSats(100.0, 'eur');
+	// EUR usually slightly stronger than USD
+	$this->assertNotEquals($satsUsd, $satsEur);
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/tests/bootstrap.php
+<?php
+declare(strict_types=1);
+
+// 1. Load Composer autoloader
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (!file_exists($autoload)) {
+  echo "Run: composer install\n";
+  exit(1);
+}
+require_once $autoload;
+
+// 2. Define plugin constants (so your classes don't explode)
+if (!defined('CASHU_WC_VERSION')) {
+  define('CASHU_WC_VERSION', '0.1.0');
+}
+if (!defined('CASHU_WC_PLUGIN_FILE_PATH')) {
+  define('CASHU_WC_PLUGIN_FILE_PATH', dirname(__DIR__));
+}
+if (!defined('CASHU_WC_PLUGIN_URL')) {
+  define('CASHU_WC_PLUGIN_URL', 'file://' . dirname(__DIR__));
+}
+if (!defined('CASHU_WC_PLUGIN_ID')) {
+  define('CASHU_WC_PLUGIN_ID', 'cashu-for-woocommerce');
+}
+
+// 3. Mock WordPress functions used in your code
+if (!function_exists('get_option')) {
+  function get_option(string $option, $default = false) {
+	// Return fake values for tests
+	$defaults = [
+	  'cashu_lightning_address' => 'rob@nostrly.com',
+	  'cashu_mint_url' => 'https://8333.space:3338',
+	  'cashu_modal_checkout' => 'yes',
+	];
+	return $defaults[$option] ?? $default;
+  }
+}
+
+echo "Bootstrap loaded – Cashu ready for testing!\n";
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/_combine-repo.sh
+#!/bin/bash
+
+# --- Configuration ---
+# Default output filename if OUTPUT_FILE env var is not set
+default_output_filename="combined.txt"
+# Determine output filename: Use env var if set, otherwise use default
+output_filename="${OUTPUT_FILE:-$default_output_filename}"
+
+# Default directories to exclude recursively if env vars don't override/append.
+# Covers common VCS, build artifacts, dependency/cache folders, IDE configs, and tool caches.
+# Names can include wildcards (e.g., "*.log", "*.egg-info").
+default_exclude_dirs=(
+	"node_modules" "target" "build" "dist" "out"    # JS, Java, general build outputs
+	".git" ".svn" ".hg"                             # Version control systems
+	".venv" "venv" "__pycache__"                   # Python virtual envs/cache
+	"vendor" ".bundle"                             # Go/PHP/Ruby dependencies
+	".vscode" ".idea"                              # Common IDE directories
+	".pytest_cache" "*.egg-info"                   # Python testing/packaging cache/metadata
+	".aider*"                                      # Aider AI tool cache/config
+	".svelte-kit"
+	".sqlx"
+	# Add other common ones if needed
+)
+
+# --- Helper Functions ---
+# Function to display usage information
+usage() {
+	echo "Usage: $0 <pattern1> [pattern2] ..."
+	echo "Example: $0 '*.js' '*.css'"
+	echo ""
+	echo "Combines files matching patterns into a single output file."
+	echo "Prepends each file's content with a comment containing its absolute path."
+	echo ""
+	echo "Output File:"
+	echo "  Defaults to: $default_output_filename"
+	echo "  Customize by setting the OUTPUT_FILE environment variable."
+	echo "  Example: export OUTPUT_FILE=\"my_custom_output.txt\""
+	echo ""
+	echo "Exclusion (Directory Names - Wildcards Supported):"
+	echo "  Default excluded names: ${default_exclude_dirs[*]}"
+	echo ""
+	echo "  Customize via Environment Variables:"
+	echo "  1. COMBINE_EXCLUDE_DIRS: If set, REPLACES the default list entirely."
+	echo "     Example: export COMBINE_EXCLUDE_DIRS=\"build .git\""
+	echo "  2. COMBINE_APPEND_EXCLUDE_DIRS: If set (and COMBINE_EXCLUDE_DIRS is NOT set),"
+	echo "     APPENDS to the default list."
+	echo "     Example: export COMBINE_APPEND_EXCLUDE_DIRS=\".mypattern *.log\""
+	echo ""
+}
+
+# --- Initialization ---
+# Get the absolute path of the current working directory
+script_cwd=$(pwd)
+if [ -z "$script_cwd" ]; then
+	echo "Error: Could not determine current working directory." >&2
+	exit 1
+fi
+
+# Check if at least one file pattern argument was provided
+if [ $# -eq 0 ]; then
+	usage
+	echo "Error: Please provide at least one file pattern as an argument." >&2
+	exit 1
+fi
+
+# --- Determine Directories to Exclude ---
+exclude_dirs=() # Initialize the final list
+echo "Determining exclusion list..."
+
+# Check precedence: COMBINE_EXCLUDE_DIRS overrides everything if set
+if [ -n "$COMBINE_EXCLUDE_DIRS" ]; then
+	# REPLACE logic
+	read -r -a exclude_dirs <<< "$COMBINE_EXCLUDE_DIRS"
+	echo "REPLACING default excludes with custom list from COMBINE_EXCLUDE_DIRS: ${exclude_dirs[*]}"
+elif [ -n "$COMBINE_APPEND_EXCLUDE_DIRS" ]; then
+	# APPEND logic: Start with defaults, then add from the append variable
+	exclude_dirs=("${default_exclude_dirs[@]}")
+	read -r -a append_dirs <<< "$COMBINE_APPEND_EXCLUDE_DIRS"
+	# Append the new directories to the existing list
+	exclude_dirs+=("${append_dirs[@]}")
+	echo "Using default excludes AND appending from COMBINE_APPEND_EXCLUDE_DIRS."
+	echo "Final exclusion list: ${exclude_dirs[*]}"
+else
+	# DEFAULT logic: Neither replace nor append variable is set
+	exclude_dirs=("${default_exclude_dirs[@]}")
+	echo "Using default recursive exclude directory names (wildcards ok): ${exclude_dirs[*]}"
+	echo "(Set COMBINE_EXCLUDE_DIRS to replace, or COMBINE_APPEND_EXCLUDE_DIRS to append to defaults)"
+fi
+
+# --- Build `find` command exclusion arguments dynamically ---
+find_prune_args=()
+if [ ${#exclude_dirs[@]} -gt 0 ]; then
+	find_prune_args+=(\() # Start grouping for -prune conditions
+	first_dir=true
+	for dir in "${exclude_dirs[@]}"; do
+		# Skip empty directory names that might result from splitting the env var
+		if [ -z "$dir" ]; then
+			continue
+		fi
+		if ! $first_dir; then
+			find_prune_args+=(-o) # Add OR between directories
+		fi
+		# Match directory by NAME (-name), which supports wildcards, ensure it's a directory (-type d)
+		find_prune_args+=(-name "$dir" -type d)
+		first_dir=false
+	done
+	find_prune_args+=(\)) # End grouping
+	find_prune_args+=(-prune -o) # Add the prune action and the OR separator for the main condition
+else
+	echo "No directory names specified for exclusion."
+fi
+
+
+# --- Main Processing ---
+# Use the determined output filename (from env var or default)
+echo "Output file will be: $output_filename"
+
+# Remove the output file if it already exists to start fresh
+if [ -f "$output_filename" ]; then
+	rm "$output_filename"
+	echo "Removed existing $output_filename"
+fi
+
+echo "Combining files matching patterns: $@"
+echo "Base directory: $script_cwd"
+
+# Loop through each pattern provided as a command-line argument
+found_files=false
+for pattern in "$@"; do
+	# Construct the final find command parts in an array for safety
+	find_command=(find . "${find_prune_args[@]}" -type f -name "$pattern" -print)
+
+	# Execute find and process results line by line
+	while IFS= read -r file; do
+		found_files=true # Mark that we found at least one file overall
+		# Construct the full path manually
+		full_path="$script_cwd/${file#./}"
+
+		echo "Adding: $full_path" # Optional: Log which file is being added
+		# Append a comment header with the constructed full path to the output file
+		echo "// $full_path" >> "$output_filename"
+		# Append the content of the found file
+		cat "$file" >> "$output_filename"
+		# Append a newline for separation
+		echo "" >> "$output_filename"
+	done < <("${find_command[@]}") # Execute find command and pipe its stdout to the while loop
+
+done
+
+# --- Final Message ---
+if [ "$found_files" = true ]; then
+	echo "All found files matching patterns $* (respecting exclusions) have been combined into $output_filename"
+else
+	echo "No files found matching the patterns: $* (respecting exclusions). Output file '$output_filename' not created."
+fi
+
+exit 0
+
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/.editorconfig
+# This file is for unifying the coding style for different editors and IDEs
+# editorconfig.org
+
+# WordPress Coding Standards
+# https://make.wordpress.org/core/handbook/coding-standards/
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = tab
+indent_size = 4
+
+[{.jshintrc,*.json,*.yml}]
+indent_style = space
+indent_size = 2
+
+[{*.txt,wp-config-sample.php}]
+end_of_line = crlf
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/languages/cashu-for-woocommerce.pot
+# Copyright (C) 2025 Rob Woodgate
+# This file is distributed under the same license as the Cashu For WooCommerce package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
+"Report-Msgid-Bugs-To: "
+"https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
+"POT-Creation-Date: 2025-11-27 11:56:33+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2025-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-Country: United States\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: "
+"__;_e;_x:1,2c;_ex:1,2c;_n:1,2;_nx:1,2,4c;_n_noop:1,2;_nx_noop:1,2,3c;esc_"
+"attr__;esc_html__;esc_attr_e;esc_html_e;esc_attr_x:1,2c;esc_html_x:1,2c;\n"
+"X-Poedit-Basepath: ../\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-Bookmarks: \n"
+"X-Textdomain-Support: yes\n"
+"X-Generator: grunt-wp-i18n 1.0.4\n"
+
+#: src/Admin/GlobalSettings.php:14
+msgid "Cashu"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:24
+msgid "Cashu payments"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:26
+msgid "Accept ecash payments directly to your lightning address via any Cashu mint."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:33
+msgid "Enable Cashu"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:35
+msgid "Enable Cashu payments"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:40
+msgid "Lightning address"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:43
+msgid "Where melted payments are sent, either a lightning address or LNURL."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:51
+msgid "Debug log"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:53
+msgid "Enable logging"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:57
+msgid "Log events to the WooCommerce logs, <a href=\"%s\">view logs</a>."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:14 src/Gateway/CashuGateway.php:42
+msgid "Cashu ecash"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:15
+msgid ""
+"Accept Cashu tokens and melt them to your lightning address, zero fee ecash "
+"payments with instant settlement."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:23 src/Gateway/CashuGateway.php:47
+msgid "Paste your cashuB… token below."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:40
+msgid "Title"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:45
+msgid "Checkout instructions"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:122
+msgid "Awaiting Cashu payment"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:141 src/Gateway/CashuGateway.php:173
+msgid "Invalid order"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:150
+msgid "Failed to get invoice"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:177
+msgid "Cashu payment confirmed, client side melt completed."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:179
+msgid "Order paid"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "Cashu For WooCommerce"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://www.github.com/robwoodgate"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid ""
+"Cashu is a free and open source ecash protocol for Bitcoin, this plugin "
+"allows you to receive Cashu payments in Bitcoin, directly to your lightning "
+"address, with no fees or transaction costs."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Rob Woodgate"
+msgstr ""
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/README.md
+# Cashu For WooCommerce #
+**Contributors:** [robwoodgate](https://profiles.wordpress.org/robwoodgate/)
+**Donate link:** https://donate.cogmentis.com/
+**Tags:** payments, bitcoin, lightning, checkout, cashu
+**Requires at least:** 6.5
+**Tested up to:** 6.8.3
+**Requires PHP:** 8.3
+**Stable tag:** 0.1.0
+**License:** MIT
+
+## Description ##
+
+Cashu For WooCommerce adds a secure Cashu payment gateway to your WooCommerce store.
+
+It allows you to receive private bitcoin payments using Cashu ecash, which is then automatically converted (melted) and sent to your bitcoin lightning address.
+
+## Installation ##
+
+1. Make sure your server is running PHP 8.3 or higher
+1. Upload and unzip `cashu-for-woocommerce.zip` to the `/wp-content/plugins/` directory.
+3. Activate the plugin through the 'Plugins' menu in WordPress.
+4. Configure the plugin settings via the WooCommerce settings page.
+5. Ensure you setup your lightning address so Cashu payments can be routed properly.
+
+## Frequently Asked Questions ##
+
+### Does this store private keys in WordPress? ###
+
+No, the plugin requires only your public lightning address.
+
+Payments in Cashu ecash are melted to bitcoin and send via lightning in real time, so no sensitive keys are required on the server.
+
+## Changelog ##
+
+### 0.1.0 ###
+Initial developer release.
+
+## Upgrade Notice ##
+
+### 0.1.0 ###
+First public release. Test carefully, don't be reckless.
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/.gitignore
+.DS_Store
+phpcs.xml
+phpunit.xml
+.phpunit.result.cache
+Thumbs.db
+wp-cli.local.yml
+node_modules/
+vendor/
+*.sql
+*.tar.gz
+*.zip
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/CONTRIBUTING.md
+# Cashu For WooCommerce
+
+Thank you for your interest in contributing to Cashu For WooCommerce. This project extends WooCommerce with Cashu payments, so changes need to be stable, secure and easy for other developers to follow.
+
+This guide explains how to set up the development environment, run the tooling, and prepare changes before opening a pull request.
+
+## Getting started
+
+You will need
+
+* Node and npm for build, i18n and readme
+* PHP and Composer for running unit tests
+* A local clone of this repository
+* A WordPress and WooCommerce development environment if you want to test the plugin in a real site
+
+From your terminal
+
+```bash
+cd /path/to/cashu-for-woocommerce
+npm install
+composer install
+```
+
+This installs all the development dependencies, including Grunt, Prettier and PHPUnit.
+
+### Useful commands
+
+We use a Gruntfile to perform various tasks, which you can run via npm scripts:
+
+```bash
+npm run start
+```
+
+That will
+
+* Scan PHP files and ensure all translation functions use the cashu-for-woocommerce text domain
+* Regenerate the languages/cashu-for-woocommerce.pot file
+* Convert readme.txt into README.md
+
+You can run these individually if you prefer.
+
+Only translation work:
+
+```bash
+npm run i18n
+```
+
+Only readme conversion:
+
+```bash
+npm run readme
+```
+
+If you have `grunt-cli` installed globally you can also run `grunt`, `grunt i18n` or `grunt readme` directly, but this is optional because the npm scripts always use the local Grunt binary in node_modules.
+
+## Code style and formatting
+
+We use Prettier to keep the code style consistent, especially for PHP in the main plugin file and the src folder.
+
+To check formatting:
+
+```bash
+npm run format:check
+```
+
+To automatically fix formatting issues:
+
+```bash
+npm run format
+```
+
+Before opening a pull request, please run `npm run format` so your changes match the existing style.
+
+## Internationalisation
+
+Cashu For WooCommerce is prepared for translation using the `cashu-for-woocommerce` text domain.
+
+When adding or updating strings in PHP:
+
+* Use standard WordPress translation functions, for example \
+`__()`, `_e()`, `_x()`, `esc_html__()`, `esc_attr__()` and so on
+* Always pass `cashu-for-woocommerce` as the text domain
+
+Example:
+
+```php
+__( 'Pay with Cashu', 'cashu-for-woocommerce' );
+```
+
+If you are unsure whether your strings are correctly set up, run:
+
+```bash
+npm run i18n
+```
+
+which will update text domains where needed and regenerate the pot file.
+
+## Running tests
+
+PHP unit tests are managed with PHPUnit via Composer.
+
+To run the test suite:
+
+```bash
+composer test
+# or via npm
+npm run test
+```
+
+This will execute the tests defined in the test suite using the PHPUnit binary in `vendor/bin/phpunit`.
+
+Please run the tests before opening a pull request, especially if you have changed any PHP code.
+
+## Development workflow
+
+A typical workflow for a small change might look like this:
+
+1. Create a new branch from main
+
+2. Make your code changes
+
+3. Run the tools
+
+   ```bash
+   npm run format
+   npm run i18n
+   npm run readme
+   npm run test
+   ```
+
+4. Test the plugin in your WordPress and WooCommerce environment
+
+5. Commit your changes with a clear message
+
+6. Push your branch and open a pull request
+
+Please keep pull requests focused on a single change where possible, for example a bug fix, a new feature, or a documentation update. This makes review much easier.
+
+## Reporting issues
+
+If you find a bug or have a feature request, please include:
+
+* A clear description of the problem or idea
+* Steps to reproduce the issue if it is a bug
+* Your WordPress version, WooCommerce version and PHP version
+* Any relevant error messages or logs
+
+This information helps us understand and address the issue more quickly.
+
+## Thank you
+
+Every contribution, whether it is code, documentation, testing or feedback, helps improve Cashu For WooCommerce. Thank you for taking the time to help.
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/readme.txt
+=== Cashu For WooCommerce ===
+Contributors: robwoodgate
+Donate link: https://donate.cogmentis.com/
+Tags: payments, bitcoin, lightning, checkout, cashu
+Requires at least: 6.5
+Tested up to: 6.8.3
+Requires PHP: 8.3
+Stable tag: 0.1.0
+License: MIT
+
+== Description ==
+
+Cashu For WooCommerce adds a secure Cashu payment gateway to your WooCommerce store.
+
+It allows you to receive private bitcoin payments using Cashu ecash, which is then automatically converted (melted) and sent to your bitcoin lightning address.
+
+== Installation ==
+
+1. Make sure your server is running PHP 8.3 or higher
+1. Upload and unzip `cashu-for-woocommerce.zip` to the `/wp-content/plugins/` directory.
+3. Activate the plugin through the 'Plugins' menu in WordPress.
+4. Configure the plugin settings via the WooCommerce settings page.
+5. Ensure you setup your lightning address so Cashu payments can be routed properly.
+
+== Frequently Asked Questions ==
+
+= Does this store private keys in WordPress? =
+
+No, the plugin requires only your public lightning address.
+
+Payments in Cashu ecash are melted to bitcoin and send via lightning in real time, so no sensitive keys are required on the server.
+
+== Changelog ==
+
+= 0.1.0 =
+Initial developer release.
+
+== Upgrade Notice ==
+
+= 0.1.0 =
+First public release. Test carefully, don't be reckless.
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/phpunit.xml.dist
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.0/phpunit.xsd"
+	bootstrap="tests/bootstrap.php"
+	colors="true"
+>
+	<testsuites>
+		<testsuite name="all">
+			<directory suffix="Test.php">tests</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/.distignore
+# A set of files you probably don't want in your WordPress.org distribution
+.babelrc
+.deployignore
+.distignore
+.editorconfig
+.eslintignore
+.eslintrc
+.git
+.gitignore
+.github
+.gitlab-ci.yml
+.travis.yml
+.DS_Store
+.*~
+Thumbs.db
+behat.yml
+bitbucket-pipelines.yml
+bin
+.circleci/config.yml
+composer.json
+composer.lock
+dependencies.yml
+Gruntfile.js
+package.json
+package-lock.json
+phpunit.xml
+phpunit.xml.dist
+.phpunit.result.cache
+multisite.xml
+multisite.xml.dist
+.phpcs.xml
+phpcs.xml
+.phpcs.xml.dist
+phpcs.xml.dist
+README.md
+webpack.config.js
+wp-cli.local.yml
+yarn.lock
+tests
+vendor
+node_modules
+*.sql
+*.tar.gz
+*.zip
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/vite.config.ts
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+	lib: {
+	  entry: 'src/checkout.ts',
+	  name: 'CashuCheckout',
+	  formats: ['iife'],
+	  fileName: () => 'cashu-checkout.js',
+	},
+	outDir: 'assets/dist',
+  },
+});
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/license.txt
+MIT License
+
+Copyright (c) 2024 Rob Woodgate
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/assets/css/admin.css
+.cashu-connection-success {
+	color: green;
+}
+.cashu-connection-error {
+	color: red;
+}
+
+.cashu-review-dismiss {
+	margin-left: 20px;
+}
+.cashu-review-dismiss-forever {
+	margin-left: 10px;
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/assets/css/cashu-modal.css
+/* assets/css/cashu-modal.css - BTCNutServer style */
+#cashu-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.cashu-backdrop {
+	background: rgba(0,0,0,0.5);
+	width: 100%;
+	height: 100%;
+	position: absolute;
+}
+.cashu-content {
+	background: white;
+	padding: 20px;
+	border-radius: 8px;
+	max-width: 400px;
+	width: 100%;
+	text-align: center;
+	position: relative;
+	box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.cashu-close {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: none;
+	border: none;
+	font-size: 20px;
+	cursor: pointer;
+}
+.cashu-amount {
+	font-size: 18px;
+	margin: 10px 0;
+}
+#cashu-token {
+	width: 100%;
+	height: 100px;
+	margin: 10px 0;
+	padding: 10px;
+}
+#cashu-privkey {
+	width: 100%;
+	margin: 10px 0;
+	padding: 10px;
+}
+#cashu-pay-btn {
+	background: #f7931a;
+	color: white;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 4px;
+	cursor: pointer;
+	font-weight: bold;
+}
+#cashu-pay-btn:disabled {
+	background: gray;
+}
+#cashu-qr {
+	margin: 20px 0;
+}
+#cashu-status {
+	font-weight: bold;
+	margin: 10px 0;
+}
+.cashu-change {
+	margin-top: 20px;
+}
+.cashu-change textarea {
+	width: 100%;
+	height: 60px;
+	margin-bottom: 10px;
+}
+.cashu-change button {
+	background: #4caf50;
+	color: white;
+	border: none;
+	padding: 5px 10px;
+	cursor: pointer;
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/assets/js/frontend/cashu-modal.js
+import { getDecodedToken, getEncodedTokenV4, Wallet } from '@cashu/cashu-ts';
+import QRCode from 'qrcode';
+
+class CashuModalCheckout {
+  constructor({ amountSats, lightningAddress, orderId, onSuccess, onError }) {
+	this.amountSats = amountSats;
+	this.lightningAddress = lightningAddress;
+	this.orderId = orderId;
+	this.onSuccess = onSuccess;
+	this.onError = onError || console.error;
+	this.wallet = null;
+	this.mintUrl = null;
+  }
+
+  async open() {
+	this.renderModal();
+  }
+
+  renderModal() {
+	const modal = document.createElement('div');
+	modal.id = 'cashu-modal';
+	modal.innerHTML = `
+	  <div class="cashu-backdrop">
+		<div class="cashu-content">
+		  <h2>Pay with Cashu Token</h2>
+		  <p>Amount: <strong>${this.amountSats.toLocaleString()} sats</strong></p>
+		  <textarea id="cashu-token" placeholder="cashuA..."></textarea>
+		  <input id="cashu-privkey" type="text" placeholder="P2PK private key (if locked)" style="display:none;">
+		  <button id="cashu-melt" disabled>Melt Token & Pay</button>
+		  <div id="cashu-qr" style="margin:20px auto;"></div>
+		  <p id="cashu-status">Paste token to start...</p>
+		  <div id="cashu-change"></div>
+		  <button class="cashu-close">Close</button>
+		</div>
+	  </div>
+	`;
+	document.body.appendChild(modal);
+
+	const tokenInput = modal.querySelector('#cashu-token');
+	const privkeyInput = modal.querySelector('#cashu-privkey');
+	const meltBtn = modal.querySelector('#cashu-melt');
+	const status = modal.querySelector('#cashu-status');
+
+	tokenInput.addEventListener('input', () => {
+	  this.validateToken(tokenInput.value, status, privkeyInput, meltBtn);
+	});
+
+	meltBtn.addEventListener('click', () => this.meltAndPay(tokenInput.value, privkeyInput.value, status));
+
+	modal.querySelector('.cashu-close').addEventListener('click', () => this.close());
+  }
+
+  async validateToken(token, status, privkeyInput, meltBtn) {
+	status.textContent = 'Validating...';
+	meltBtn.disabled = true;
+
+	try {
+	  const decoded = getDecodedToken(token.trim());
+	  const proofs = decoded.token[0].proofs;
+	  const amount = proofs.reduce((sum, p) => sum + p.amount, 0);
+	  if (amount < this.amountSats) throw new Error('Insufficient funds');
+
+	  this.mintUrl = decoded.token[0].mint;
+	  this.wallet = new Wallet(this.mintUrl);
+	  await this.wallet.loadMint();
+
+	  const locked = proofs.some(p => p.secret.includes('P2PK'));
+	  privkeyInput.style.display = locked ? 'block' : 'none';
+
+	  status.textContent = `Valid token (${amount.toLocaleString()} sats). ${locked ? 'Enter privkey.' : 'Ready!'}`;
+	  meltBtn.disabled = false;
+	} catch (err) {
+	  status.textContent = err.message;
+	}
+  }
+
+  async meltAndPay(token, privkey, status) {
+	status.textContent = 'Getting invoice...';
+
+	try {
+	  const invoice = await this.getInvoice();
+
+	  QRCode.toCanvas(document.getElementById('cashu-qr'), invoice, { width: 256 });
+
+	  status.textContent = 'Melting token...';
+
+	  const decoded = getDecodedToken(token);
+	  const proofs = decoded.token[0].proofs;
+
+	  const meltQuote = await this.wallet.createMeltQuoteBolt11(invoice);
+
+	  const amountToSend = meltQuote.amount + meltQuote.fee_reserve;
+
+	  const ops = this.wallet.ops.send(amountToSend, proofs).includeFees(true);
+
+	  if (privkey) {
+		ops.asP2PK({ privkey });
+	  }
+
+	  const { send: proofsToSend } = await ops.run();
+
+	  const meltResult = await this.wallet.meltProofs(meltQuote, proofsToSend);
+
+	  if (!meltResult.paid) throw new Error('Melt failed');
+
+	  status.textContent = 'Paid!';
+
+	  if (meltResult.change.length > 0) {
+		const changeToken = getEncodedTokenV4({ mint: this.mintUrl, proofs: meltResult.change });
+		document.getElementById('cashu-change').innerHTML = `
+		  <p>Change token:</p>
+		  <textarea readonly>${changeToken}</textarea>
+		  <button onclick="navigator.clipboard.writeText('${changeToken}')">Copy</button>
+		`;
+	  }
+
+	  await this.notifySuccess();
+	  setTimeout(() => this.close(), 3000);
+	} catch (err) {
+	  status.textContent = 'Error: ' + err.message;
+	  this.onError(err);
+	}
+  }
+
+  async getInvoice() {
+	const res = await fetch(ajaxurl, {
+	  method: 'POST',
+	  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+	  body: new URLSearchParams({
+		action: 'cashu_get_invoice',
+		amount: this.amountSats,
+		order_id: this.orderId,
+		nonce: cashuCheckout.nonce
+	  })
+	});
+	const data = await res.json();
+	if (!data.success) throw new Error(data.data || 'Failed to get invoice');
+	return data.data.invoice;
+  }
+
+  async notifySuccess() {
+	const res = await fetch(ajaxurl, {
+	  method: 'POST',
+	  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+	  body: new URLSearchParams({
+		action: 'cashu_payment_success',
+		order_id: this.orderId,
+		nonce: cashuCheckout.nonce
+	  })
+	});
+	const data = await res.json();
+	if (!data.success) throw new Error('Failed to mark order paid');
+  }
+
+  close() {
+	document.getElementById('cashu-modal')?.remove();
+  }
+}
+
+window.CashuModalCheckout = CashuModalCheckout;
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/assets/js/frontend/blocks.js
+const settings = window.wc.wcSettings.getSetting('cashu_data', {});
+const label = window.wp.htmlEntities.decodeEntities(settings.title || 'Cashu ecash');
+
+const Content = () => {
+	return window.wp.htmlEntities.decodeEntities(settings.description || '');
+};
+
+const CashuBlockGateway = {
+	name: 'cashu',
+	label: label,
+	content: window.wp.element.createElement(Content, null),
+	edit: window.wp.element.createElement(Content, null),
+	canMakePayment: () => true,
+	ariaLabel: label,
+	supports: {
+		features: settings.supports || [],
+	},
+};
+
+window.wc.wcBlocksRegistry.registerPaymentMethod(CashuBlockGateway);
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/assets/js/backend/notifications.js
+jQuery(document).ready(function ($) {
+	jQuery(document).on(
+		'click',
+		'.cashu-review-notice button.cashu-review-dismiss',
+		function (e) {
+			e.preventDefault();
+			$.ajax({
+				url: cashuNotifications.ajax_url,
+				type: 'post',
+				data: {
+					action: 'cashu_notifications',
+					nonce: cashuNotifications.nonce,
+				},
+				success: function (data) {
+					jQuery('.cashu-review-notice').remove();
+				},
+			});
+		},
+	);
+	jQuery(document).on(
+		'click',
+		'.cashu-review-notice button.cashu-review-dismiss-forever',
+		function (e) {
+			e.preventDefault();
+			$.ajax({
+				url: cashuNotifications.ajax_url,
+				type: 'post',
+				data: {
+					action: 'cashu_notifications',
+					nonce: cashuNotifications.nonce,
+					dismiss_forever: true,
+				},
+				success: function (data) {
+					jQuery('.cashu-review-notice').remove();
+				},
+			});
+		},
+	);
+});
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/composer.json
+{
+  "name": "cashu/cashu-for-woocommerce",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+	"psr-4": {
+	  "Cashu\\WC\\": "src/"
+	}
+  },
+  "authors": [
+	{
+	  "name": "Rob Woodgate",
+	  "homepage": "https://www.github.com/robwoodgate",
+	  "role": "Developer"
+	}
+  ],
+  "require": {},
+  "require-dev": {
+	"phpunit/phpunit": "^12.4"
+  },
+  "scripts": {
+	"test": "vendor/bin/phpunit"
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/cashu-for-woocommerce.php
+<?php
+/**
+ * Plugin Name: Cashu For WooCommerce
+ * Plugin URI:  https://www.github.com/robwoodgate
+ * Description: Cashu is a free and open source ecash protocol for Bitcoin, this plugin allows you to receive Cashu payments in Bitcoin, directly to your lightning address, with no fees or transaction costs.
+ * Author:      Rob Woodgate
+ * Author URI:  https://www.github.com/robwoodgate
+ * Text Domain: cashu-for-woocommerce
+ * Domain Path: /languages
+ * Version:     0.1.0
+ */
+
+defined('ABSPATH') || exit();
+
+define('CASHU_WC_VERSION', '0.1.0');
+define('CASHU_WC_VERSION_KEY', 'CASHU_WC_VERSION');
+define('CASHU_WC_PLUGIN_FILE_PATH', plugin_dir_path(__FILE__));
+define('CASHU_WC_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('CASHU_WC_PLUGIN_ID', 'cashu-for-woocommerce');
+
+/**
+ * Load Composer autoloader if present.
+ */
+$cashu_wc_autoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($cashu_wc_autoload)) {
+  require_once $cashu_wc_autoload;
+}
+
+/**
+ * Initialise gateway and settings once plugins are loaded.
+ */
+add_action('plugins_loaded', function () {
+  // Bail if WooCommerce is not active.
+  if (!class_exists('WC_Payment_Gateway')) {
+	return;
+  }
+
+  // Load textdomain.
+  load_plugin_textdomain(
+	'cashu-for-woocommerce',
+	false,
+	dirname(plugin_basename(__FILE__)) . '/languages'
+  );
+
+  // Register payment gateway class.
+  require_once CASHU_WC_PLUGIN_FILE_PATH . 'src/Gateway/CashuGateway.php';
+
+  add_filter('woocommerce_payment_gateways', function ($gateways) {
+	$gateways[] = 'Cashu\\WC\\Gateway\\CashuGateway';
+
+	return $gateways;
+  });
+});
+
+add_filter('woocommerce_get_settings_pages', function ($pages) {
+  if (!is_admin() || !class_exists('WC_Settings_Page')) {
+	return $pages;
+  }
+  require_once CASHU_WC_PLUGIN_FILE_PATH . 'src/Admin/GlobalSettings.php';
+  $pages[] = new \Cashu\WC\Admin\GlobalSettings();
+  return $pages;
+});
+
+/**
+ * Register WooCommerce Blocks integration.
+ */
+add_action('woocommerce_blocks_loaded', function () {
+  if (!class_exists('Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry')) {
+	return;
+  }
+
+  require_once CASHU_WC_PLUGIN_FILE_PATH . 'src/Blocks/CashuGatewayBlocks.php';
+
+  add_action('woocommerce_blocks_payment_method_type_registration', function (
+	$payment_method_registry
+  ) {
+	$payment_method_registry->register(new \Cashu\WC\Blocks\CashuGatewayBlocks());
+  });
+});
+
+// Admin scripts for dismissing review notice, kept minimal for now.
+add_action('admin_enqueue_scripts', function ($hook) {
+  if ('woocommerce_page_wc-settings' !== $hook) {
+	return;
+  }
+  wp_enqueue_script(
+	'cashu-backend',
+	CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js',
+	['jquery'],
+	CASHU_WC_VERSION,
+	true
+  );
+  wp_localize_script('cashu-backend', 'cashuNotifications', [
+	'ajax_url' => admin_url('admin-ajax.php'),
+	'nonce' => wp_create_nonce('cashu-notifications-nonce'),
+  ]);
+});
+
+// AJAX handler for review notice dismissal.
+add_action('wp_ajax_cashu_notifications', function () {
+  if (!check_ajax_referer('cashu-notifications-nonce', 'nonce', false)) {
+	wp_die('Unauthorized', '', ['response' => 401]);
+  }
+  wp_send_json_success();
+});
+
+add_action('rest_api_init', function () {
+  register_rest_route('cashu/v1', '/pay/(?P<order_id>\d+)', [
+	'methods' => 'POST',
+	'callback' => '\Cashu\WC\Rest\handle_cashu_payment',
+	'permission_callback' => '__return_true',
+  ]);
+
+  register_rest_route('cashu/v1', '/status/(?P<order_id>\d+)', [
+	'methods' => 'GET',
+	'callback' => '\Cashu\WC\Rest\get_cashu_status',
+	'permission_callback' => '__return_true',
+  ]);
+});
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/.phpunit.result.cache
+{"version":2,"defects":{"FiatConversionTest::test_fiat_to_sats_returns_integer":1,"FiatConversionTest::test_fiat_to_sats_is_reasonable":1,"FiatConversionTest::test_handles_different_currencies":1},"times":{"FiatConversionTest::test_fiat_to_sats_returns_integer":0,"FiatConversionTest::test_fiat_to_sats_is_reasonable":0,"FiatConversionTest::test_handles_different_currencies":0,"SampleTest::test_true_is_true":0.001}}
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Blocks/CashuGatewayBlocks.php
+<?php
+
+namespace Cashu\WC\Blocks;
+
+use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
+
+final class CashuGatewayBlocks extends AbstractPaymentMethodType {
+  /**
+   * Payment method name, must match gateway ID.
+   *
+   * @var string
+   */
+  protected $name = 'cashu';
+
+  /**
+   * Gateway instance.
+   *
+   * @var null|\WC_Payment_Gateway
+   */
+  private $gateway;
+
+  public function initialize(): void {
+	// Load settings stored by the gateway.
+	$this->settings = get_option('woocommerce_cashu_settings', []);
+
+	if (function_exists('WC')) {
+	  $gateways = \WC()->payment_gateways()->payment_gateways();
+	  $this->gateway = $gateways['cashu'] ?? null;
+	}
+  }
+
+  public function is_active(): bool {
+	if (!$this->gateway instanceof \WC_Payment_Gateway) {
+	  return false;
+	}
+
+	return $this->gateway->is_available();
+  }
+
+  /**
+   * Return supported features so Blocks knows what this gateway can do.
+   *
+   * @return string[]
+   */
+  public function get_supported_features() {
+	if ($this->gateway instanceof \WC_Payment_Gateway) {
+	  return $this->gateway->supports;
+	}
+
+	return [];
+  }
+
+  public function get_payment_method_script_handles(): array {
+	$script_url = CASHU_WC_PLUGIN_URL . 'assets/js/frontend/blocks.js';
+	$script_asset_path =
+	  CASHU_WC_PLUGIN_FILE_PATH . 'assets/js/frontend/blocks.asset.php';
+	$script_asset = file_exists($script_asset_path)
+	  ? require $script_asset_path
+	  : [
+		'dependencies' => [],
+		'version' => CASHU_WC_VERSION,
+	  ];
+
+	wp_register_script(
+	  'cashu-gateway-blocks',
+	  $script_url,
+	  $script_asset['dependencies'],
+	  $script_asset['version'],
+	  true
+	);
+
+	if (function_exists('wp_set_script_translations')) {
+	  wp_set_script_translations(
+		'cashu-gateway-blocks',
+		'cashu-for-woocommerce',
+		CASHU_WC_PLUGIN_FILE_PATH . 'languages/'
+	  );
+	}
+
+	return ['cashu-gateway-blocks'];
+  }
+
+  public function get_payment_method_data(): array {
+	$title = $this->get_setting('title');
+	$description = $this->get_setting('description');
+
+	return [
+	  'title' => $title,
+	  'description' => $description,
+	  'supports' => $this->get_supported_features(),
+	];
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/checkout.ts
+import { getDecodedToken, getEncodedTokenV4, Wallet } from '@cashu/cashu-ts';
+import { decode } from '@gandlaf21/bolt11-decode';
+
+type CashuWindow = Window & {
+  cashu_wc?: {
+	ajax_url: string;
+	nonce_invoice: string;
+	nonce_confirm: string;
+	lightning_address: string;
+	order_id: number | null;
+  };
+};
+
+declare const window: CashuWindow;
+
+let wallet: Wallet | null = null;
+let proofs: any[] = [];
+let tokenAmount = 0;
+let unit = 'sat';
+let mintUrl = '';
+
+const tokenInput = document.getElementById(
+  'cashu-token-input',
+) as HTMLTextAreaElement | null;
+const statusEl = document.getElementById('cashu-status') as HTMLDivElement | null;
+
+if (tokenInput && statusEl && window.cashu_wc) {
+  const setStatus = (msg: string) => {
+	statusEl.textContent = msg;
+  };
+
+  /**
+   * Extract amount in sats from a BOLT11 invoice.
+   */
+  const getSatsAmount = (lnInvoice: string): number => {
+	const decoded = decode(lnInvoice);
+	const amountSection = decoded.sections.find((section) => section.name === 'amount');
+	if (!amountSection || !amountSection.value) {
+	  throw new Error('Amount not found in lightning invoice');
+	}
+	const millisats = parseInt(amountSection.value, 10);
+	return Math.floor(millisats / 1000);
+  };
+
+  const getOrderId = (): number => {
+	if (typeof window?.cashu_wc?.order_id === 'number' && window.cashu_wc.order_id > 0) {
+	  return window.cashu_wc.order_id;
+	}
+	const params = new URLSearchParams(window.location.search);
+	const fromQuery = Number(params.get('order-pay') || 0);
+	return fromQuery || 0;
+  };
+
+  const generateInvoice = async (sats: number): Promise<string> => {
+	const orderId = getOrderId();
+	if (!orderId) {
+	  throw new Error('No order ID found');
+	}
+
+	const res = await fetch(window.cashu_wc!.ajax_url, {
+	  method: 'POST',
+	  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+	  body: new URLSearchParams({
+		action: 'cashu_generate_invoice',
+		amount: sats.toString(),
+		order_id: orderId.toString(),
+		nonce: window.cashu_wc!.nonce_invoice,
+	  }),
+	});
+
+	const json = await res.json();
+	if (!json.success) {
+	  throw new Error(json.data || 'Invoice failed');
+	}
+	return json.data.invoice as string;
+  };
+
+  const confirmPayment = async (): Promise<void> => {
+	const orderId = getOrderId();
+	if (!orderId) {
+	  throw new Error('No order ID for confirmation');
+	}
+
+	const res = await fetch(window.cashu_wc!.ajax_url, {
+	  method: 'POST',
+	  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+	  body: new URLSearchParams({
+		action: 'cashu_confirm_payment',
+		order_id: orderId.toString(),
+		nonce: window.cashu_wc!.nonce_confirm,
+	  }),
+	});
+
+	const json = await res.json();
+	if (json.success) {
+	  setStatus('Payment confirmed, order complete.');
+	  setTimeout(() => window.location.reload(), 3000);
+	} else {
+	  setStatus('Payment failed to confirm.');
+	}
+  };
+
+  const meltToken = async (token: string) => {
+	try {
+	  setStatus('Decoding token…');
+
+	  const decoded = getDecodedToken(token);
+	  proofs = decoded.proofs || [];
+	  tokenAmount = proofs.reduce((sum, p) => sum + (p.amount || 0), 0);
+	  unit = (decoded.unit as string) || 'sat';
+	  mintUrl = decoded.mint as string;
+
+	  if (!proofs.length || tokenAmount <= 0) {
+		throw new Error('Token contains no spendable proofs');
+	  }
+
+	  setStatus(`Token value, ${tokenAmount} ${unit}, initialising wallet…`);
+
+	  wallet = new Wallet(mintUrl);
+	  await wallet.loadMint();
+
+	  setStatus('Requesting lightning invoice…');
+	  const invoice = await generateInvoice(tokenAmount);
+
+	  setStatus('Creating melt quote…');
+	  const meltQuote = await wallet.createMeltQuoteBolt11(invoice);
+
+	  // Fee estimate as in your sample, but without trying to outsmart the invoice,
+	  // the wallet and melt will error if funds are genuinely insufficient.
+	  let estFeeSats = Math.ceil(Math.max(2, tokenAmount * 0.02));
+	  let estInvSats = tokenAmount - estFeeSats;
+
+	  if (unit !== 'sat') {
+		const mintQuote = await wallet.createMintQuoteBolt11(tokenAmount);
+		const sats = getSatsAmount(mintQuote.request);
+		estFeeSats = Math.ceil(Math.max(2, sats * 0.02));
+		estInvSats = sats - estFeeSats;
+	  }
+
+	  estInvSats -= wallet.getFeesForProofs(proofs);
+	  if (estInvSats <= 0) {
+		throw new Error('Token too low once fees are included');
+	  }
+
+	  setStatus(`Sending ${meltQuote.amount} ${unit} plus fee reserve…`);
+
+	  const meltResponse = await wallet.meltProofsBolt11(meltQuote, proofs);
+
+	  if (!meltResponse.quote) {
+		throw new Error('Melt failed');
+	  }
+
+	  setStatus('Payment successful.');
+
+	  if (meltResponse.change && meltResponse.change.length > 0) {
+		setStatus('Preparing change token…');
+		const newToken = getEncodedTokenV4({
+		  mint: mintUrl,
+		  unit,
+		  proofs: meltResponse.change,
+		});
+		await navigator.clipboard.writeText(newToken);
+		setTimeout(() => setStatus('Change token copied to clipboard.'), 2000);
+	  }
+
+	  await confirmPayment();
+	} catch (e: unknown) {
+	  const msg = e instanceof Error ? e.message : String(e);
+	  console.error(msg);
+	  setStatus('Error, ' + msg);
+	}
+  };
+
+  tokenInput.addEventListener('paste', (e: ClipboardEvent) => {
+	const text = e.clipboardData?.getData('text') || '';
+	if (text.startsWith('cashuB')) {
+	  e.preventDefault();
+	  const trimmed = text.trim();
+	  tokenInput.value = trimmed;
+	  setTimeout(() => {
+		void meltToken(trimmed);
+	  }, 300);
+	}
+  });
+
+  tokenInput.addEventListener('input', () => {
+	const val = tokenInput.value.trim();
+	if (val.startsWith('cashuB') && val.length > 100) {
+	  setStatus('Token looks valid, press Enter to pay or paste it again.');
+	}
+  });
+
+  tokenInput.addEventListener('keydown', (e: KeyboardEvent) => {
+	if (e.key === 'Enter') {
+	  e.preventDefault();
+	  const val = tokenInput.value.trim();
+	  if (val.startsWith('cashuB')) {
+		void meltToken(val);
+	  }
+	}
+  });
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Admin/GlobalSettings.php
+<?php
+
+declare(strict_types=1);
+
+namespace Cashu\WC\Admin;
+
+use Cashu\WC\Helpers\Logger;
+
+class GlobalSettings extends \WC_Settings_Page {
+  public function __construct() {
+	$this->id = 'cashu';
+	$this->label = __('Cashu', 'cashu-for-woocommerce');
+
+	parent::__construct();
+  }
+
+  public function get_settings_for_default_section(): array {
+	return [
+	  'title' => [
+		'id' => 'cashu_settings_title',
+		'title' => __('Cashu payments', 'cashu-for-woocommerce'),
+		'type' => 'title',
+		'desc' => __(
+		  'Accept ecash payments directly to your lightning address via any Cashu mint.',
+		  'cashu-for-woocommerce'
+		),
+	  ],
+	  'enabled' => [
+		'id' => 'cashu_enabled',
+		'title' => __('Enable Cashu', 'cashu-for-woocommerce'),
+		'type' => 'checkbox',
+		'label' => __('Enable Cashu payments', 'cashu-for-woocommerce'),
+		'default' => 'no',
+	  ],
+	  'lightning_address' => [
+		'id' => 'cashu_lightning_address',
+		'title' => __('Lightning address', 'cashu-for-woocommerce'),
+		'type' => 'text',
+		'placeholder' => 'you@example.com',
+		'desc_tip' => __(
+		  'Where melted payments are sent, either a lightning address or LNURL.',
+		  'cashu-for-woocommerce'
+		),
+		'default' => '',
+	  ],
+	  'debug' => [
+		'id' => 'cashu_debug',
+		'title' => __('Debug log', 'cashu-for-woocommerce'),
+		'type' => 'checkbox',
+		'label' => __('Enable logging', 'cashu-for-woocommerce'),
+		'default' => 'no',
+		'desc' => sprintf(
+		  // translators, %s is a link to WooCommerce logs page
+		  __(
+			'Log events to the WooCommerce logs, <a href="%s">view logs</a>.',
+			'cashu-for-woocommerce'
+		  ),
+		  Logger::getLogFileUrl()
+		),
+	  ],
+	  'section_end' => [
+		'id' => 'cashu_settings_end',
+		'type' => 'sectionend',
+	  ],
+	];
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Admin/Notice.php
+<?php
+
+declare(strict_types=1);
+
+namespace Cashu\WC\Admin;
+
+class Notice {
+  /**
+   * Adds notice to the admin UI.
+   */
+  public static function addNotice(
+	string $level,
+	string $message,
+	bool $dismissible = false,
+	?string $customClass = null
+  ): void {
+	add_action('admin_notices', function () use (
+	  $level,
+	  $message,
+	  $dismissible,
+	  $customClass
+	) {
+	  $classes = $customClass ? ' ' . $customClass : '';
+	  $classes .= $dismissible ? ' is-dismissible' : '';
+	  ?>
+				<div class="notice notice-<?php echo esc_attr($level) .
+	  esc_attr($classes); ?>" style="padding:12px 12px">
+					<?php echo '<strong>Cashu:</strong> ' . wp_kses_post($message); ?>
+				</div>
+				<?php
+	});
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Helpers/Logger.php
+<?php
+
+declare(strict_types=1);
+
+namespace Cashu\WC\Helpers;
+
+class Logger {
+  public static function debug(string $message, $force = false): void {
+	if (get_option('cashu_debug') === 'yes' || $force) {
+	  // Convert message to string
+	  if (!is_string($message)) {
+		$message = wc_print_r($message, true);
+	  }
+
+	  $logger = new \WC_Logger();
+	  $context = ['source' => CASHU_WC_PLUGIN_ID];
+	  $logger->debug($message, $context);
+	}
+  }
+
+  public static function getLogFileUrl(): string {
+	$log_file =
+	  CASHU_WC_PLUGIN_ID .
+	  '-' .
+	  gmdate('Y-m-d') .
+	  '-' .
+	  sanitize_file_name(wp_hash(CASHU_WC_PLUGIN_ID)) .
+	  '-log';
+	return esc_url(admin_url('admin.php?page=wc-status&tab=logs&log_file=' . $log_file));
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Helpers/CashuHelper.php
+<?php
+declare(strict_types=1);
+namespace Cashu\WC\Helpers;
+
+use Cashu\Cashu\Cashu;
+use Cashu\Cashu\Proof;
+use GuzzleHttp\Client;
+
+class CashuHelper {
+  private string $lightningAddress;
+  private bool $modal;
+
+  public function __construct() {
+	$this->lightningAddress = get_option('cashu_lightning_address', '');
+	$this->modal = get_option('cashu_modal_checkout', 'yes') === 'yes';
+  }
+
+  public function isConfigured(): bool {
+	return !empty($this->lightningAddress);
+  }
+
+  public function fiatToSats(float $amount, string $fiat = 'USD'): int {
+	$fiat = strtolower($fiat);
+	$url = add_query_arg(
+	  [
+		'ids' => 'bitcoin',
+		'vs_currencies' => $fiat,
+	  ],
+	  'https://api.coingecko.com/api/v3/simple/price'
+	);
+	$resp = wp_remote_get($url);
+	if (is_wp_error($resp)) {
+	  throw new \RuntimeException('Failed to fetch BTC price');
+	}
+	$data = json_decode(wp_remote_retrieve_body($resp), true);
+	if (!isset($data['bitcoin'][$fiat]) || $data['bitcoin'][$fiat] <= 0) {
+	  throw new \RuntimeException('Invalid BTC price response');
+	}
+	$btcPrice = (float) $data['bitcoin'][$fiat];
+	return (int) round(($amount / $btcPrice) * 1e8);
+  }
+
+  public function melt(string $token, string $invoice): array {
+	$cashu = new Cashu(); // Wrapper for cashu-ts if needed; assume ported or exec JS
+	$result = $cashu->decodeToken($token);
+
+	$melt = $cashu->melt($invoice, $result['proofs']);
+
+	return [
+	  'paid' => $melt['paid'],
+	  'change' => $melt['change'] ?? [],
+	  'preimage' => $melt['preimage'] ?? '',
+	];
+  }
+
+  private function getInvoice(string $lightningAddress, int $sats): string {
+	// From your redeem: LNURL/lightning address → invoice
+	// Implement as in redeem script (getInvoiceFromLnurl)
+	if (strpos($lightningAddress, '@') !== false) {
+	  [$user, $host] = explode('@', $lightningAddress);
+	  $client = new Client();
+	  $res = $client->get("https://$host/.well-known/lnurlp/$user");
+	  $data = json_decode($res->getBody()->getContents(), true);
+	  $res = $client->get($data['callback'] . '?amount=' . $sats * 1000);
+	  $invoiceData = json_decode($res->getBody()->getContents(), true);
+	  return $invoiceData['pr'];
+	}
+	return $lightningAddress; // Direct invoice
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Helpers/LightningAddress.php
+<?php
+namespace Cashu\WC\Helpers;
+
+class LightningAddress {
+  public static function getInvoice(string $address, int $sats): string {
+	[$user, $host] = explode('@', $address);
+	$client = new \GuzzleHttp\Client();
+	$res = $client->get("https://$host/.well-known/lnurlp/$user");
+	$data = json_decode($res->getBody()->getContents(), true);
+	$res = $client->get($data['callback'] . '?amount=' . $sats * 1000);
+	$invoiceData = json_decode($res->getBody()->getContents(), true);
+	return $invoiceData['pr'];
+  }
+
+  protected function get_bolt11_for_order(\WC_Order $order): string {
+	$ln_address = trim($this->get_option('lightning_address'));
+	if (empty($ln_address)) {
+	  throw new \RuntimeException('Lightning address not configured');
+	}
+
+	if (strpos($ln_address, '@') === false) {
+	  throw new \RuntimeException('Invalid lightning address');
+	}
+
+	list($name, $host) = explode('@', $ln_address, 2);
+
+	$lnurlp_url = sprintf('https://%s/.well-known/lnurlp/%s', $host, rawurlencode($name));
+
+	$meta_response = wp_remote_get($lnurlp_url, ['timeout' => 15]);
+	if (is_wp_error($meta_response)) {
+	  throw new \RuntimeException('Failed to fetch LNURL metadata');
+	}
+
+	$meta_code = wp_remote_retrieve_response_code($meta_response);
+	$meta_body = json_decode(wp_remote_retrieve_body($meta_response), true);
+
+	if ($meta_code !== 200 || !is_array($meta_body) || empty($meta_body['callback'])) {
+	  throw new \RuntimeException('Invalid LNURL metadata');
+	}
+
+	$amount_sats = $this->convert_to_sats($order->get_total());
+	$amount_msat = $amount_sats * 1000;
+
+	$callback = $meta_body['callback'];
+
+	$invoice_url = add_query_arg(
+	  [
+		'amount' => $amount_msat,
+	  ],
+	  $callback
+	);
+
+	$inv_response = wp_remote_get($invoice_url, ['timeout' => 15]);
+	if (is_wp_error($inv_response)) {
+	  throw new \RuntimeException('Failed to request invoice');
+	}
+
+	$inv_code = wp_remote_retrieve_response_code($inv_response);
+	$inv_body = json_decode(wp_remote_retrieve_body($inv_response), true);
+
+	if ($inv_code !== 200 || empty($inv_body['pr'])) {
+	  throw new \RuntimeException('Invalid invoice response');
+	}
+
+	return $inv_body['pr']; // The BOLT11 string
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Helpers/OrderStates.php
+<?php
+
+declare(strict_types=1);
+
+namespace Cashu\WC\Helpers;
+
+/**
+ * Helper class to render the order_states as a custom field in global settings form.
+ */
+class OrderStates {
+  const NEW = 'New';
+  const PENDING = 'Pending';
+  const SETTLED = 'Settled';
+  const PAID = 'Paid';
+  const EXPIRED = 'Expired';
+  const IGNORE = 'CASHU_IGNORE';
+
+  public function getDefaultOrderStateMappings(): array {
+	return [
+	  self::NEW => 'wc-pending',
+	  self::PENDING => 'wc-pending',
+	  self::PAID => 'wc-processing',
+	  self::SETTLED => self::IGNORE,
+	  self::EXPIRED => 'wc-cancelled',
+	];
+  }
+
+  public function getOrderStateLabels(): array {
+	return [
+	  self::NEW => 'New',
+	  self::PENDING => 'Pending',
+	  self::PAID => 'Paid',
+	  self::SETTLED => 'Settled',
+	  self::EXPIRED => 'Expired',
+	];
+  }
+
+  public function renderOrderStatesHtml($value) {
+	$cashuStates = $this->getOrderStateLabels();
+	$defaultStates = $this->getDefaultOrderStateMappings();
+
+	$wcStates = wc_get_order_statuses();
+	$wcStates =
+	  [
+		self::IGNORE => '- no mapping / defaults -',
+	  ] + $wcStates;
+	$orderStates = get_option($value['id']);
+	?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">Order States:</th>
+			<td class="forminp" id="<?php echo esc_attr($value['id']); ?>">
+				<table cellspacing="0">
+					<?php foreach ($cashuStates as $cashuState => $cashuName) { ?>
+						<tr>
+							<th><?php echo esc_html($cashuName); ?></th>
+							<td>
+								<select name="<?php echo esc_attr($value['id']); ?>[<?php echo esc_html(
+  $cashuState
+); ?>]">
+									<?php foreach ($wcStates as $wcState => $wcName) {
+		   $selectedOption = $orderStates[$cashuState];
+
+		   if (true === empty($selectedOption)) {
+			 $selectedOption = $defaultStates[$cashuState];
+		   }
+
+		   if ($selectedOption === $wcState) {
+			 echo '<option value="' .
+			   esc_attr($wcState) .
+			   '" selected>' .
+			   esc_html($wcName) .
+			   '</option>' .
+			   PHP_EOL;
+		   } else {
+			 echo '<option value="' .
+			   esc_attr($wcState) .
+			   '">' .
+			   esc_html($wcName) .
+			   '</option>' .
+			   PHP_EOL;
+		   }
+		 } ?>
+								</select>
+							</td>
+						</tr>
+						<?php } ?>
+				</table>
+				<p class="description">
+		  <?php echo esc_html(
+			'By keeping default behavior for the "Settled" status you make sure that WooCommerce handles orders of virtual and downloadable products only properly and set those orders to "complete" instead of "processing" like for orders containing physical products.'
+		  ); ?>
+				</p>
+			</td>
+		</tr>
+		<?php
+  }
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Rest/PaymentController.php
+<?php
+namespace Cashu\WC\Rest;
+
+use WC_Order;
+
+defined('ABSPATH') || exit();
+
+function handle_cashu_payment(\WP_REST_Request $request) {
+  $order_id = (int) $request->get_param('order_id');
+  $order = wc_get_order($order_id);
+
+  if (!$order) {
+	return new \WP_REST_Response(['error' => 'Order not found'], 404);
+  }
+
+  $body = json_decode($request->get_body(), true);
+  if (!is_array($body)) {
+	return new \WP_REST_Response(['error' => 'Invalid payload'], 400);
+  }
+
+  $mint = $body['mint'] ?? null;
+  $unit = $body['unit'] ?? null;
+  $proofs = $body['proofs'] ?? null;
+
+  if (!$mint || !$unit || !is_array($proofs)) {
+	return new \WP_REST_Response(['error' => 'Missing fields'], 400);
+  }
+
+  // Expected sats from order
+  $expected_amount = (int) get_post_meta($order_id, '_cashu_expected_amount', true);
+  $expected_unit = get_post_meta($order_id, '_cashu_expected_unit', true) ?: 'sat';
+
+  if ($unit !== $expected_unit) {
+	return new \WP_REST_Response(['error' => 'Unit mismatch'], 400);
+  }
+
+  // Call mint to verify and redeem proofs.
+  $result = verify_and_redeem_proofs_with_mint($mint, $proofs);
+
+  if (!$result['ok']) {
+	return new \WP_REST_Response(['error' => 'Invalid or spent proofs'], 400);
+  }
+
+  if ($result['amount'] < $expected_amount) {
+	return new \WP_REST_Response(['error' => 'Underpaid'], 400);
+  }
+
+  // Mark Woo order as paid if not already.
+  if (!in_array($order->get_status(), ['processing', 'completed'], true)) {
+	$order->payment_complete();
+	$order->add_order_note(
+	  sprintf(
+		'Cashu payment received, amount %d %s from %s',
+		$result['amount'],
+		$unit,
+		$mint
+	  )
+	);
+  }
+
+  // Store whatever additional info you like.
+  update_post_meta($order_id, '_cashu_mint', $mint);
+  update_post_meta($order_id, '_cashu_amount_paid', $result['amount']);
+
+  return new \WP_REST_Response(['status' => 'paid'], 200);
+}
+
+/**
+ * Example helper that talks to the mint.
+ * You will need to adapt this to the exact Cashu HTTP API you want to use.
+ */
+function verify_and_redeem_proofs_with_mint(string $mint, array $proofs): array {
+  $endpoint = trailingslashit($mint) . 'v1/check'; // or melt, depending on your plan
+
+  $response = wp_remote_post($endpoint, [
+	'headers' => ['Content-Type' => 'application/json'],
+	'body' => wp_json_encode(['proofs' => $proofs]),
+	'timeout' => 20,
+  ]);
+
+  if (is_wp_error($response)) {
+	return ['ok' => false, 'amount' => 0];
+  }
+
+  $code = wp_remote_retrieve_response_code($response);
+  $body = json_decode(wp_remote_retrieve_body($response), true);
+
+  if ($code !== 200 || !is_array($body)) {
+	return ['ok' => false, 'amount' => 0];
+  }
+
+  // You will need to adapt this to the actual shape of the mint response.
+  $amount = (int) ($body['amount'] ?? 0);
+
+  return [
+	'ok' => !empty($body['valid']),
+	'amount' => $amount,
+  ];
+}
+
+function get_cashu_status(\WP_REST_Request $request) {
+  $order_id = (int) $request->get_param('order_id');
+  $order = wc_get_order($order_id);
+
+  if (!$order) {
+	return new \WP_REST_Response(['error' => 'Order not found'], 404);
+  }
+
+  return new \WP_REST_Response(
+	[
+	  'status' => $order->get_status(),
+	],
+	200
+  );
+}
+
+function melt_bolt11_with_proofs(
+  string $mint,
+  string $bolt11,
+  string $unit,
+  array $proofs
+): array {
+  // 1. Get melt quote for this invoice
+  $quote_endpoint = trailingslashit($mint) . 'v1/melt/quote/bolt11';
+
+  $quote_response = wp_remote_post($quote_endpoint, [
+	'headers' => ['Content-Type' => 'application/json'],
+	'body' => wp_json_encode([
+	  'request' => $bolt11,
+	  'unit' => $unit,
+	]),
+	'timeout' => 30,
+  ]);
+
+  if (is_wp_error($quote_response)) {
+	return ['ok' => false, 'reason' => 'quote_http_error'];
+  }
+
+  $quote_code = wp_remote_retrieve_response_code($quote_response);
+  $quote_body = json_decode(wp_remote_retrieve_body($quote_response), true);
+
+  if ($quote_code !== 200 || !is_array($quote_body)) {
+	return ['ok' => false, 'reason' => 'quote_bad_response'];
+  }
+
+  $quote_id = $quote_body['quote'] ?? null;
+  $amount = (int) ($quote_body['amount'] ?? 0);
+  $feeReserve = (int) ($quote_body['fee_reserve'] ?? 0);
+  $state = $quote_body['state'] ?? null;
+
+  if (!$quote_id || $state !== 'UNPAID') {
+	return ['ok' => false, 'reason' => 'quote_invalid_state'];
+  }
+
+  // 2. Call melt with our proofs as inputs
+  $melt_endpoint = trailingslashit($mint) . 'v1/melt/bolt11';
+
+  $melt_response = wp_remote_post($melt_endpoint, [
+	'headers' => ['Content-Type' => 'application/json'],
+	'body' => wp_json_encode([
+	  'quote' => $quote_id,
+	  'inputs' => $proofs,
+	  // No outputs for change yet, simplest possible flow.
+	]),
+	'timeout' => 60,
+  ]);
+
+  if (is_wp_error($melt_response)) {
+	return ['ok' => false, 'reason' => 'melt_http_error'];
+  }
+
+  $melt_code = wp_remote_retrieve_response_code($melt_response);
+  $melt_body = json_decode(wp_remote_retrieve_body($melt_response), true);
+
+  if ($melt_code !== 200 || !is_array($melt_body)) {
+	return ['ok' => false, 'reason' => 'melt_bad_response'];
+  }
+
+  $final_state = $melt_body['state'] ?? null;
+  $paid_amount = (int) ($melt_body['amount'] ?? 0);
+  $payment_hash = $melt_body['payment_preimage'] ?? null;
+
+  if ($final_state !== 'PAID') {
+	return ['ok' => false, 'reason' => 'melt_not_paid'];
+  }
+
+  return [
+	'ok' => true,
+	'amount' => $paid_amount,
+	'unit' => $unit,
+	'fee_reserve' => $feeReserve,
+	'hash' => $payment_hash,
+  ];
+}
+
+// /Users/robw/Sites/current/wpdemo/public_html/wp-content/plugins/cashu-for-woocommerce/src/Gateway/CashuGateway.php
+<?php
+declare(strict_types=1);
+
+namespace Cashu\WC\Gateway;
+
+use Cashu\WC\Helpers\Logger;
+
+class CashuGateway extends \WC_Payment_Gateway {
+  public function __construct() {
+	$this->id = 'cashu';
+	$this->method_title = __('Cashu ecash', 'cashu-for-woocommerce');
+	$this->method_description = __(
+	  'Accept Cashu tokens and melt them to your lightning address, zero fee ecash payments with instant settlement.',
+	  'cashu-for-woocommerce'
+	);
+	$this->has_fields = true;
+	$this->supports = ['products'];
+
+	$this->init_form_fields();
+	$this->init_settings();
+
+	$this->title = $this->get_option('title', 'Cashu ecash');
+	$this->description = $this->get_option(
+	  'description',
+	  __('Paste your cashuB… token below.', 'cashu-for-woocommerce')
+	);
+
+	add_action('woocommerce_update_options_payment_gateways_' . $this->id, [
+	  $this,
+	  'process_admin_options',
+	]);
+	add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
+
+	// AJAX endpoints.
+	add_action('wp_ajax_cashu_generate_invoice', [$this, 'ajax_generate_invoice']);
+	add_action('wp_ajax_nopriv_cashu_generate_invoice', [$this, 'ajax_generate_invoice']);
+	add_action('wp_ajax_cashu_confirm_payment', [$this, 'ajax_confirm_payment']);
+	add_action('wp_ajax_nopriv_cashu_confirm_payment', [$this, 'ajax_confirm_payment']);
+	add_action('woocommerce_thankyou_' . $this->id, [$this, 'thankyou_page']);
+  }
+
+  public function init_form_fields() {
+	// Only gateway presentation, lightning settings live on the Cashu tab.
+	$this->form_fields = [
+	  'title' => [
+		'title' => __('Title', 'cashu-for-woocommerce'),
+		'type' => 'text',
+		'default' => __('Cashu ecash', 'cashu-for-woocommerce'),
+	  ],
+	  'description' => [
+		'title' => __('Checkout instructions', 'cashu-for-woocommerce'),
+		'type' => 'textarea',
+		'default' => __('Paste your cashuB… token below.', 'cashu-for-woocommerce'),
+	  ],
+	];
+  }
+
+  /**
+   * Enqueue checkout script on pages where it is needed.
+   */
+  public function enqueue_scripts() {
+	if (!$this->is_available() || !is_checkout()) {
+	  return;
+	}
+
+	// Use the UMD build we already have in assets/dist.
+	wp_enqueue_script(
+	  'cashu-checkout',
+	  CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js',
+	  [],
+	  CASHU_WC_VERSION,
+	  true
+	);
+
+	$order_id = isset($_GET['order-pay']) ? absint($_GET['order-pay']) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+	wp_localize_script('cashu-checkout', 'cashu_wc', [
+	  'ajax_url' => admin_url('admin-ajax.php'),
+	  'nonce_invoice' => wp_create_nonce('cashu_generate_invoice'),
+	  'nonce_confirm' => wp_create_nonce('cashu_confirm_payment'),
+	  'lightning_address' => get_option('cashu_lightning_address', ''),
+	  'order_id' => $order_id ?: null,
+	]);
+  }
+
+  public function payment_fields() {
+	?>
+		<div id="cashu-payment-container">
+			<p><?php echo wp_kses_post($this->description); ?></p>
+			<textarea id="cashu-token-input" placeholder="cashuB..." rows="4" style="width:100%; font-family:monospace;"></textarea>
+			<div id="cashu-status" style="margin:10px 0; font-weight:bold;"></div>
+		</div>
+		<?php
+  }
+
+  public function is_available() {
+	$enabled = get_option('cashu_enabled', 'no');
+	$lightning_address = trim((string) get_option('cashu_lightning_address', ''));
+
+	if ('yes' !== $enabled) {
+	  return false;
+	}
+
+	if ('' === $lightning_address) {
+	  return false;
+	}
+
+	return 'yes' === $this->enabled;
+  }
+
+  /**
+   * Renders your UI on the checkout page, token input, QR, messages, buttons, anything visual.
+   * @param  $order_id WooCommerce Order ID
+   * @return WP_AJAX Success response
+   */
+  public function process_payment($order_id) {
+	$order = wc_get_order($order_id);
+
+	$amount_sats = $this->convert_to_sats($order->get_total());
+	update_post_meta($order_id, '_cashu_expected_amount', $amount_sats);
+	update_post_meta($order_id, '_cashu_expected_unit', 'sat');
+
+	// Generate the BOLT11 invoice now and store it
+	try {
+	  $bolt11 = $this->get_bolt11_for_order($order);
+	  update_post_meta($order_id, '_cashu_bolt11', $bolt11);
+	} catch (\RuntimeException $e) {
+	  wc_add_notice(
+		__('Could not create lightning invoice', 'cashu-for-woocommerce'),
+		'error'
+	  );
+	  return ['result' => 'failure'];
+	}
+
+	// Build NUT 18 PaymentRequest pointing to our REST endpoint, as before
+	$mints = $this->get_configured_mints();
+	$endpoint = rest_url(sprintf('cashu/v1/pay/%d', $order_id));
+
+	$transport = [
+	  [
+		't' => 'post',
+		'a' => $endpoint,
+	  ],
+	];
+
+	$payment_request = \Cashu\WC\PaymentRequest::fromData([
+	  'amount' => $amount_sats,
+	  'id' => (string) $order_id,
+	  'mints' => $mints,
+	  'unit' => 'sat',
+	  'transport' => $transport,
+	]);
+
+	$encoded_pr = $payment_request->encode();
+	update_post_meta($order_id, '_cashu_payment_request', $encoded_pr);
+
+	$order->update_status('on-hold', 'Awaiting Cashu payment');
+
+	return [
+	  'result' => 'success',
+	  'redirect' => $this->get_return_url($order),
+	];
+  }
+
+  public function thankyou_page($order_id) {
+	$payment_request = get_post_meta($order_id, '_cashu_payment_request', true);
+	if (!$payment_request) {
+	  return;
+	}
+
+	echo '<h2>' . esc_html__('Pay with Cashu', 'cashu-for-woocommerce') . '</h2>';
+	echo '<p>' .
+	  esc_html__(
+		'Scan this payment request in your Cashu wallet.',
+		'cashu-for-woocommerce'
+	  ) .
+	  '</p>';
+
+	echo '<div class="cashu-pr" data-cashu-order="' . esc_attr($order_id) . '">';
+	echo '<code>' . esc_html($payment_request) . '</code>';
+	// Later you can drop in a QR generator here.
+	echo '</div>';
+
+	echo '<p>' .
+	  esc_html__(
+		'After payment, this page will update once your order is confirmed.',
+		'cashu-for-woocommerce'
+	  ) .
+	  '</p>';
+  }
+
+  /**
+   * Generate a lightning invoice for the order total.
+   */
+  public function ajax_generate_invoice() {
+	check_ajax_referer('cashu_generate_invoice', 'nonce');
+
+	$order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+	$order = wc_get_order($order_id);
+	if (!$order) {
+	  wp_send_json_error(__('Invalid order', 'cashu-for-woocommerce'));
+	}
+
+	// Simple assumption for now, order total is denominated in sats, or you are already using a BTC priced store.
+	$amount_sats = (int) round($order->get_total() * 1000); // adjust later if you decide to do fiat pricing.
+
+	$invoice = $this->fetch_ln_invoice($amount_sats);
+	if (!$invoice) {
+	  Logger::debug('Failed to fetch LN invoice for order ' . $order_id);
+	  wp_send_json_error(__('Failed to get invoice', 'cashu-for-woocommerce'));
+	}
+
+	$order->update_meta_data('_cashu_invoice', $invoice);
+	$order->save();
+
+	wp_send_json_success([
+	  'invoice' => $invoice,
+	]);
+  }
+
+  /**
+   * Mark the order as paid after a successful melt.
+   */
+  public function ajax_confirm_payment() {
+	check_ajax_referer('cashu_confirm_payment', 'nonce');
+
+	$order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+	$order = wc_get_order($order_id);
+	if (!$order) {
+	  wp_send_json_error(__('Invalid order', 'cashu-for-woocommerce'));
+	}
+
+	$order->payment_complete();
+	$order->add_order_note(
+	  __('Cashu payment confirmed, client side melt completed.', 'cashu-for-woocommerce')
+	);
+
+	wp_send_json_success(__('Order paid', 'cashu-for-woocommerce'));
+  }
+
+  /**
+   * Get a lightning invoice either via LNURL or lightning address.
+   */
+  private function fetch_ln_invoice(int $amount_sats): ?string {
+	$destination = trim((string) get_option('cashu_lightning_address', ''));
+	if ('' === $destination) {
+	  return null;
+	}
+
+	// Lightning address.
+	if (str_contains($destination, '@')) {
+	  $parts = explode('@', $destination);
+	  if (2 !== count($parts)) {
+		return null;
+	  }
+	  $url = 'https://' . $parts[1] . '/.well-known/lnurlp/' . $parts[0];
+	  $resp = wp_remote_get($url);
+	  if (is_wp_error($resp)) {
+		Logger::debug('Lightning address lnurlp error, ' . $resp->get_error_message());
+
+		return null;
+	  }
+	  $data = json_decode(wp_remote_retrieve_body($resp), true);
+	  if (empty($data['callback'])) {
+		return null;
+	  }
+
+	  $callback = add_query_arg('amount', $amount_sats * 1000, $data['callback']);
+	  $resp = wp_remote_get($callback);
+	  if (is_wp_error($resp)) {
+		Logger::debug('Lightning address callback error, ' . $resp->get_error_message());
+
+		return null;
+	  }
+	  $json = json_decode(wp_remote_retrieve_body($resp), true);
+
+	  return isset($json['pr']) ? (string) $json['pr'] : null;
+	}
+
+	// Anything else (raw invoice, bad config, etc) is unsupported for now
+	return null;
+  }
+
+  /**
+   * Verify melt quote with the mint for a given order.
+   *
+   * @param string   $quote_id
+   * @param WC_Order $order
+   *
+   * @return array{success:bool,message:string,data?:array}
+   */
+  protected function verify_melt_quote_for_order(
+	string $quote_id,
+	\WC_Order $order
+  ): array {
+	// You will probably store the mint base url in your settings
+	$mint_base_url = $this->get_option('mint_url'); // adjust to your field id
+
+	if (empty($mint_base_url)) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'Cashu mint is not configured, please contact the store administrator.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	// Normalise trailing slash
+	$mint_base_url = rtrim($mint_base_url, '/');
+
+	$endpoint = $mint_base_url . '/v1/melt/quote/bolt11/' . rawurlencode($quote_id);
+
+	$response = wp_remote_get($endpoint, [
+	  'timeout' => 15,
+	  'headers' => [
+		'Accept' => 'application/json',
+	  ],
+	]);
+
+	if (is_wp_error($response)) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'Could not reach the Cashu mint, please try again.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	$code = wp_remote_retrieve_response_code($response);
+	if ($code < 200 || $code >= 300) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'The Cashu mint returned an unexpected response.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	$body = wp_remote_retrieve_body($response);
+	$data = json_decode($body, true);
+
+	if (!is_array($data)) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'Could not understand the response from the Cashu mint.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	// Check quote id matches
+	if (empty($data['quote']) || $data['quote'] !== $quote_id) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'The Cashu mint quote does not match this payment.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	// Check state indicates a successful melt
+	$state = isset($data['state']) ? strtolower((string) $data['state']) : '';
+	if ($state !== 'paid' && $state !== 'settled') {
+	  // You can be more specific here if you know the exact state values
+	  return [
+		'success' => false,
+		'message' => __(
+		  'Your Cashu payment has not been completed yet.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	// Check amount is at least what we expect for this order
+	$expected_amount = $this->get_expected_melt_amount_for_order($order, $data);
+	$actual_amount = isset($data['amount']) ? (int) $data['amount'] : 0;
+
+	if ($actual_amount < $expected_amount) {
+	  return [
+		'success' => false,
+		'message' => __(
+		  'The Cashu payment amount is less than the order total.',
+		  'cashu-for-woocommerce'
+		),
+	  ];
+	}
+
+	return [
+	  'success' => true,
+	  'message' => '',
+	  'data' => $data,
+	];
+  }
+}
+

@@ -15,11 +15,20 @@
     }
   ],
   "require-dev": {
-    "wp-cli/i18n-command": "^2",
-    "phpunit/phpunit": "^12.4"
+    "phpunit/phpunit": "^12.4",
+    "phpstan/phpstan": "^2.1",
+    "phpstan/extension-installer": "^1.4",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "php-stubs/woocommerce-stubs": "^10.3",
+    "php-stubs/wordpress-stubs": "^6.9"
   },
   "scripts": {
     "test": "vendor/bin/phpunit",
-    "makepot": "wp i18n make-pot ."
+    "stan": "phpstan analyse --memory-limit=1G"
+  },
+  "config": {
+    "allow-plugins": {
+      "phpstan/extension-installer": true
+    }
   }
 }

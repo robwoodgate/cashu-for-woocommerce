@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2025-11-21 20:28:06+00:00\n"
+"POT-Creation-Date: 2025-12-02 09:53:04+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -25,12 +25,126 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n 1.0.4\n"
 
-#: vendor/wp-cli/wp-cli/php/utils-wp.php:301
-msgid "Inactive Widgets"
+#: cashu-for-woocommerce.php:175 cashu-for-woocommerce.php:257
+msgid "Invalid security token."
 msgstr ""
 
-#: vendor/wp-cli/wp-cli/php/utils-wp.php:304
-msgid "Drag widgets here to remove them from the sidebar but keep their settings."
+#: cashu-for-woocommerce.php:179 cashu-for-woocommerce.php:261
+msgid "WooCommerce is not loaded."
+msgstr ""
+
+#: cashu-for-woocommerce.php:184 cashu-for-woocommerce.php:266
+msgid "Missing order ID."
+msgstr ""
+
+#: cashu-for-woocommerce.php:189 cashu-for-woocommerce.php:271
+msgid "Order not found."
+msgstr ""
+
+#: cashu-for-woocommerce.php:195
+msgid "Lightning address is not configured."
+msgstr ""
+
+#: cashu-for-woocommerce.php:212
+msgid "Failed to calculate sats amount."
+msgstr ""
+
+#: cashu-for-woocommerce.php:216
+msgid "Calculated sats amount is invalid."
+msgstr ""
+
+#: cashu-for-woocommerce.php:233
+msgid "Failed to request invoice from Lightning address."
+msgstr ""
+
+#: cashu-for-woocommerce.php:239
+msgid "Empty invoice returned from Lightning service."
+msgstr ""
+
+#: cashu-for-woocommerce.php:277
+msgid "Cashu payment confirmed, client side melt completed."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:12
+msgid "Cashu"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:21
+msgid "Cashu payments"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:23
+msgid "Accept ecash payments directly to your lightning address via any Cashu mint."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:30
+msgid "Enable Cashu"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:32
+msgid "Enable Cashu payments"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:37
+msgid "Lightning address"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:40
+msgid "Where melted payments are sent, either a lightning address or LNURL."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:48
+msgid "Trusted Mint URL"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:51
+msgid "A mint you trust to act as your intermediary."
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:59
+msgid "Debug log"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:61
+msgid "Enable logging"
+msgstr ""
+
+#: src/Admin/GlobalSettings.php:65
+msgid "Log events to the WooCommerce logs, <a href=\"%s\">view logs</a>."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:16 src/Gateway/CashuGateway.php:52
+msgid "Cashu ecash"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:17
+msgid ""
+"Accept Cashu tokens and melt them straight to your Bitcoin lightning "
+"address."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:30
+msgid "Paste your cashuB… token below."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:50
+msgid "Title"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:55
+msgid "Checkout instructions"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:57
+msgid "You will be able to complete your purchase using Cashu ecash."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:63
+msgid "Enable/Disable"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:64
+msgid "Enable Cashu Gateway"
 msgstr ""
 
 #. Plugin Name of the plugin/theme
@@ -43,7 +157,7 @@ msgstr ""
 
 #. Description of the plugin/theme
 msgid ""
-"Cashu is a free and open-source ecash protocol for Bitcoin. This plugin "
+"Cashu is a free and open source ecash protocol for Bitcoin, this plugin "
 "allows you to receive Cashu payments in Bitcoin, directly to your lightning "
 "address, with no fees or transaction costs."
 msgstr ""

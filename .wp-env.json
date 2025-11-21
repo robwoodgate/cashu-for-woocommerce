@@ -1,0 +1,29 @@
+{
+  "plugins": [
+    "https://downloads.wordpress.org/plugin/woocommerce.zip",
+    "https://downloads.wordpress.org/plugin/email-log.zip",
+    "https://downloads.wordpress.org/plugin/btcpay-greenfield-for-woocommerce.2.7.2.zip",
+    "https://downloads.wordpress.org/plugin/blink-for-woocommerce.0.1.3.zip",
+    "."
+    ],
+  "config": {
+    "WP_DEBUG": true,
+    "WP_DEBUG_LOG": "wp-content/plugins/cashu-for-woocommerce/debug.log",
+    "WP_DEBUG_DISPLAY": true,
+    "SCRIPT_DEBUG": true,
+    "WP_ENVIRONMENT_TYPE": "local"
+  },
+  "env": {
+    "tests": {
+      "config": {
+        "WP_DEBUG": true,
+        "WP_DEBUG_LOG": "wp-content/plugins/cashu-for-woocommerce/debug.log",
+        "SCRIPT_DEBUG": true,
+        "WP_DEBUG_DISPLAY": true,
+        "WP_ENVIRONMENT_TYPE": "local"
+      },
+      "mysqlPort": 13306,
+      "phpmyadminPort": 9001
+    }
+  }
+}
