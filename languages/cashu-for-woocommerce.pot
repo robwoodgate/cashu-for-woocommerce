@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2025-12-02 09:53:04+00:00\n"
+"POT-Creation-Date: 2025-12-15 21:04:21+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -25,43 +25,43 @@ msgstr ""
 "X-Textdomain-Support: yes\n"
 "X-Generator: grunt-wp-i18n 1.0.4\n"
 
-#: cashu-for-woocommerce.php:175 cashu-for-woocommerce.php:257
+#: cashu-for-woocommerce.php:211 cashu-for-woocommerce.php:295
 msgid "Invalid security token."
 msgstr ""
 
-#: cashu-for-woocommerce.php:179 cashu-for-woocommerce.php:261
+#: cashu-for-woocommerce.php:215 cashu-for-woocommerce.php:299
 msgid "WooCommerce is not loaded."
 msgstr ""
 
-#: cashu-for-woocommerce.php:184 cashu-for-woocommerce.php:266
+#: cashu-for-woocommerce.php:220 cashu-for-woocommerce.php:304
 msgid "Missing order ID."
 msgstr ""
 
-#: cashu-for-woocommerce.php:189 cashu-for-woocommerce.php:271
+#: cashu-for-woocommerce.php:225 cashu-for-woocommerce.php:309
 msgid "Order not found."
 msgstr ""
 
-#: cashu-for-woocommerce.php:195
+#: cashu-for-woocommerce.php:231
 msgid "Lightning address is not configured."
 msgstr ""
 
-#: cashu-for-woocommerce.php:212
+#: cashu-for-woocommerce.php:248
 msgid "Failed to calculate sats amount."
 msgstr ""
 
-#: cashu-for-woocommerce.php:216
+#: cashu-for-woocommerce.php:252
 msgid "Calculated sats amount is invalid."
 msgstr ""
 
-#: cashu-for-woocommerce.php:233
+#: cashu-for-woocommerce.php:269
 msgid "Failed to request invoice from Lightning address."
 msgstr ""
 
-#: cashu-for-woocommerce.php:239
+#: cashu-for-woocommerce.php:275
 msgid "Empty invoice returned from Lightning service."
 msgstr ""
 
-#: cashu-for-woocommerce.php:277
+#: cashu-for-woocommerce.php:315
 msgid "Cashu payment confirmed, client side melt completed."
 msgstr ""
 
@@ -113,37 +113,37 @@ msgstr ""
 msgid "Log events to the WooCommerce logs, <a href=\"%s\">view logs</a>."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:16 src/Gateway/CashuGateway.php:52
+#: src/Gateway/CashuGateway.php:15 src/Gateway/CashuGateway.php:53
 msgid "Cashu ecash"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:17
+#: src/Gateway/CashuGateway.php:16
 msgid ""
 "Accept Cashu tokens and melt them straight to your Bitcoin lightning "
 "address."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:30
+#: src/Gateway/CashuGateway.php:29
 msgid "Paste your cashuB… token below."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:50
+#: src/Gateway/CashuGateway.php:51
 msgid "Title"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:55
+#: src/Gateway/CashuGateway.php:56
 msgid "Checkout instructions"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:57
+#: src/Gateway/CashuGateway.php:58
 msgid "You will be able to complete your purchase using Cashu ecash."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:63
+#: src/Gateway/CashuGateway.php:64
 msgid "Enable/Disable"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:64
+#: src/Gateway/CashuGateway.php:65
 msgid "Enable Cashu Gateway"
 msgstr ""
 

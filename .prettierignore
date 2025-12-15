@@ -1,0 +1,6 @@
+**/*.php
+vendor/
+node_modules/
+dist/
+build/
+languages/

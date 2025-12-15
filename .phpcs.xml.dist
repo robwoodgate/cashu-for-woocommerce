@@ -1,41 +1,71 @@
 <?xml version="1.0"?>
 <ruleset name="Cashu WooCommerce Payment Processor Coding Standards">
-    <description>
-        PHPCS rules for the plugin, using WordPress Coding Standards and PHPCompatibilityWP.
-    </description>
+	<description>
+		PHPCS rules for the plugin, using WordPress Coding Standards and PHPCompatibilityWP.
+	</description>
 
-    <!-- Paths to scan -->
-    <file>./</file>
+	<!-- Paths to scan -->
+	<file>.</file>
 
-    <!-- Things we do not want to scan -->
-    <exclude-pattern>*/vendor/*</exclude-pattern>
-    <exclude-pattern>*/node_modules/*</exclude-pattern>
-    <exclude-pattern>*/.git/*</exclude-pattern>
-    <exclude-pattern>*/tests/*</exclude-pattern>
+	<!-- Things we do not want to scan -->
+	<exclude-pattern>*/var/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/.git/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
 
-    <!-- General PHPCS arguments -->
-    <arg name="basepath" value="."/>
-    <arg name="extensions" value="php"/>
-    <arg name="parallel" value="8"/>
-    <arg value="sp"/>
+	<!-- General PHPCS arguments -->
+	<arg value="sp"/> <!-- Show sniff and progress -->
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
 
-    <!-- WordPress Coding Standards -->
-    <rule ref="WordPress-Core"/>
-    <rule ref="WordPress-Extra"/>
-    <rule ref="WordPress-Docs"/>
+	<!-- WordPress Coding Standards -->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Extra"/>
+	<!-- <rule ref="WordPress-Docs"/> -->
 
-    <!-- Example of relaxed line length, tweak if you prefer stricter -->
-    <exclude name="Generic.Files.LineLength.TooLong"/>
-    <exclude name="Generic.Files.LineLength.MaxExceeded"/>
+	<!-- Example of relaxed line length, tweak if you prefer stricter -->
+	<exclude name="Generic.Files.LineLength.TooLong"/>
+	<exclude name="Generic.Files.LineLength.MaxExceeded"/>
 
-    <!-- PHPCompatibilityWP, target PHP 8.3 and above -->
-    <config name="testVersion" value="8.3-"/>
+	<!-- PHPCompatibilityWP, target PHP 8.3 and above -->
+	<config name="testVersion" value="8.3-"/>
 
-    <rule ref="PHPCompatibilityWP"/>
+	<rule ref="PHPCompatibilityWP"/>
 
-    <!-- You can selectively ignore rules per file or folder if needed
-    <rule ref="WordPress.Security.NonceVerification">
-        <exclude-pattern>*/path-to-safe-file.php</exclude-pattern>
+	<!-- Allow PSR-4 class/file naming -->
+    <rule ref="WordPress.Files.FileName.NotHyphenatedLowercase">
+        <exclude-pattern>*/src/*</exclude-pattern>
     </rule>
-    -->
+    <rule ref="WordPress.Files.FileName.InvalidClassFileName">
+        <exclude-pattern>*/src/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+        <exclude-pattern>*/src/*</exclude-pattern>
+    </rule>
+
+    <!-- Allow short ternary (?:) -->
+    <rule ref="Universal.Operators.DisallowShortTernary.Found">
+        <exclude-pattern>*/src/*</exclude-pattern>
+		<exclude-pattern>*/cashu-for-woocommerce\.php</exclude-pattern>
+    </rule>
+
+    <!-- Allow camelCase variables and properties -->
+	<rule ref="WordPress.NamingConventions.ValidVariableName">
+		<exclude name="WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName.MemberVarNotSnakeCase"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase"/>
+		<exclude name="WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase"/>
+	</rule>
+
+    <!-- Inline comment punctuation is too noisy for label style comments -->
+    <exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+
+	<!-- You can selectively ignore rules per file or folder if needed
+	<rule ref="WordPress.Security.NonceVerification">
+		<exclude-pattern>*/path-to-safe-file.php</exclude-pattern>
+	</rule>
+	-->
 </ruleset>
