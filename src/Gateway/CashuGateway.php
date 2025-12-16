@@ -10,7 +10,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 	public function __construct() {
 		// Init gateway
 		$this->id                 = 'cashu';
-		$this->icon               = CASHU_WC_PLUGIN_URL . 'assets/images/cashu-logo.svg';
+		$this->icon               = CASHU_WC_PLUGIN_URL . 'assets/images/cashu-logo.png';
 		$this->method_title       = __( 'Cashu ecash', 'cashu-for-woocommerce' );
 		$this->method_description = __(
 			'Accept Cashu tokens and melt them straight to your Bitcoin lightning address.',
@@ -38,6 +38,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		// Enqueue scripts / webhooks
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'woocommerce_receipt_' . $this->id, [ $this, 'receipt_page' ] );
 		// add_action('woocommerce_api_{webhook name}', [$this, 'webhook']);
 	}
 
@@ -112,68 +113,95 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 * You will need it if you want your custom credit card form, Step 4 is about it.
 	 */
 	public function payment_fields() {
-		// ok, let's display some description before the payment form
 		if ( $this->description ) {
-			// display the description with <p> tags etc.
 			echo wpautop( wp_kses_post( $this->description ) );
 		}
-		parent::payment_fields();
-		$order_id    = absint( get_query_var( 'order-pay' ) );
-		$order       = wc_get_order( $order_id );
-		$amount_sats = $order->get_total();
-		update_post_meta( $order_id, '_cashu_expected_amount', $amount_sats );
-		update_post_meta( $order_id, '_cashu_expected_unit', 'sat' );
 
-		echo <<<EOL
-<p>Please send <?php echo {$this->get_order_total()}() ?> USDT TRC-20 by using the QR code or address</p>
-<canvas id="qr"></canvas>
-<p>Once you've done that, please enter transaction ID below:</p>
-<p class="form-row form-row-wide">
-	<input type="text" name="txid" placeholder="Transaction ID" / >
-</p>
-<script>
-(function() {
-	const qr = new QRious({
-		element: document.getElementById( 'qr' ),
-		value: '<?php echo "yoyoyo" ?>',
-		size: 250
-	});
-})();
-</script>
-EOL;
+		// Use cart total on checkout (no order exists yet).
+		$total_html = WC()->cart ? WC()->cart->get_total() : '';
+
+		echo '<p>Please paste your Cashu token below.</p>';
+		echo '<p class="form-row form-row-wide">';
+		echo '<textarea name="cashu_token" rows="4" placeholder="cashuB... token" required></textarea>';
+		echo '</p>';
+
+		if ( $total_html ) {
+			echo '<p>Order total: ' . wp_kses_post( $total_html ) . '</p>';
+		}
 	}
 
-	// Fields validation, more in Step 5
 	public function validate_fields() {
-		// wc_add_notice(  'We always fail!', 'error' );
-		// return false;
+		// if ( empty( $_POST['cashu_token'] ) ) {
+		// 	wc_add_notice( 'Please paste a Cashu token.', 'error' );
+		// 	return false;
+		// }
 		return true;
 	}
 
-	/**
-	 * Renders your UI on the checkout page, token input, QR, messages, buttons, anything visual.
-	 *
-	 * @param $order_id WooCommerce Order ID
-	 *
-	 * @return WP_AJAX Success response
-	 */
 	public function process_payment( $order_id ) {
-		return array();
 		$order = wc_get_order( $order_id );
+		$order->update_status( 'wc-pending', 'Awaiting Cashu payment' );
 
-		$amount_sats = CashuHelper::fiatToSats(
-			(float) $order->get_total(),
-			$order->get_currency()
-		);
-		update_post_meta( $order_id, '_cashu_expected_amount', $amount_sats );
-		update_post_meta( $order_id, '_cashu_expected_unit', 'sat' );
-
-		$order->update_status( 'on-hold', 'Awaiting Cashu payment' );
-
-		return array(
+		// Send them to /checkout/order-pay/{id}/?pay_for_order=true...
+		return [
 			'result'   => 'success',
-			'redirect' => $this->get_return_url( $order ),
-		);
+			'redirect' => $order->get_checkout_payment_url( true ),
+		];
+	}
+
+
+	// /**
+	//  * Renders your UI on the checkout page, token input, QR, messages, buttons, anything visual.
+	//  *
+	//  * @param $order_id WooCommerce Order ID
+	//  *
+	//  * @return WP_AJAX Success response
+	//  */
+	// public function process_payment( $order_id ) {
+	// 	$order = wc_get_order( $order_id );
+
+	// 	$amount_sats = CashuHelper::fiatToSats(
+	// 		(float) $order->get_total(),
+	// 		$order->get_currency()
+	// 	);
+	// 	update_post_meta( $order_id, '_cashu_expected_amount', $amount_sats );
+	// 	update_post_meta( $order_id, '_cashu_expected_unit', 'sat' );
+
+	// 	$order->update_status( 'on-hold', 'Awaiting Cashu payment' );
+
+	// 	return array(
+	// 		'result'   => 'success',
+	// 		'redirect' => $this->get_return_url( $order ),
+	// 	);
+	// }
+
+
+	public function receipt_page( $order_id ) {
+	$order = wc_get_order( $order_id );
+	if ( ! $order ) {
+		echo '<p>Order not found.</p>';
+		return;
+	}
+
+	// If someone hits this URL for a different gateway, don’t show anything.
+	if ( $order->get_payment_method() !== $this->id ) {
+		return;
+	}
+	echo '<p>Please complete payment for order #' . esc_html( $order->get_order_number() ) . '.</p>';
+		echo '<p>Amount: ' . wp_kses_post( $order->get_formatted_order_total() ) . '</p>';
+
+	echo '<div id="cashu-pay-root"
+		data-order-id="' . esc_attr( $order_id ) . '"
+		data-order-key="' . esc_attr( $order->get_order_key() ) . '"
+		data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"></div>';
+
+	// Optional, hide Woo’s “Pay for order” button if you don’t want a second click.
+	// echo '<style>.woocommerce #order_review .button#place_order{display:none !important;}</style>';
+
+	// Enqueue your JS bundle here or conditionally in wp_enqueue_scripts for is_checkout_pay_page().
+	wp_enqueue_script( 'cashu-checkout' );
+
+		// Output your canvas, token UI, etc, here.
 	}
 
 	// In case you need a webhook, like PayPal IPN etc
