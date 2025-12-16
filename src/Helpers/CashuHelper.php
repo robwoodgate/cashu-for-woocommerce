@@ -62,6 +62,8 @@ class CashuHelper {
 		}
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		//phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_print_r
+		Logger::debug( 'Coingecko response: ' . print_r( $data, true ) );
 
 		if ( ! isset( $data['bitcoin'][ $fiat ] ) || $data['bitcoin'][ $fiat ] <= 0 ) {
 			throw new \RuntimeException( 'Invalid BTC price response.' );

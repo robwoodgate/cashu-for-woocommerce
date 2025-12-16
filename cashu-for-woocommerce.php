@@ -320,3 +320,67 @@ function cashu_wc_ajax_confirm_payment() {
 }
 add_action( 'wp_ajax_cashu_confirm_payment', 'cashu_wc_ajax_confirm_payment' );
 add_action( 'wp_ajax_nopriv_cashu_confirm_payment', 'cashu_wc_ajax_confirm_payment' );
+
+
+/**
+ * Display Cashu total in Order item totals
+ */
+add_filter(
+	'woocommerce_get_order_item_totals',
+	function ( $totals, $order ) {
+
+		if ( ! $order instanceof WC_Order ) {
+			return $totals;
+		}
+
+		// Only show for your gateway.
+		if ( $order->get_payment_method() !== 'cashu' ) {
+			return $totals;
+		}
+
+		$sats = (int) $order->get_meta( '_cashu_expected_amount' );
+		$unit = (string) $order->get_meta( '_cashu_expected_unit' );
+
+		if ( $sats <= 0 ) {
+			return $totals;
+		}
+
+		$totals['cashu_expected_amount'] = array(
+			'label' => __( 'Cashu Amount', 'cashu-for-woocommerce' ),
+			'value' => esc_html( number_format_i18n( $sats ) . ' ' . ( $unit ?: 'sat' ) ),
+		);
+
+		return $totals;
+	},
+	20,
+	2
+);
+
+
+/**
+ * Display cashu change token after order totals
+ */
+add_action(
+	'woocommerce_order_details_after_order_table',
+	function ( $order ) {
+
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		if ( $order->get_payment_method() !== 'cashu' ) {
+			return;
+		}
+
+		$change = (string) $order->get_meta( '_cashu_change' );
+		if ( ! $change ) {
+			return;
+		}
+
+		echo '<section class="woocommerce-cashu-details">';
+		echo '<h2>' . esc_html__( 'Your Cashu change token', 'cashu-for-woocommerce' ) . '</h2>';
+		echo '<textarea name="cashu_change" id="cashu_change" rows="10" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;">' . esc_textarea( $change ) . '</textarea>';
+		echo '</section>';
+	},
+	20
+);
