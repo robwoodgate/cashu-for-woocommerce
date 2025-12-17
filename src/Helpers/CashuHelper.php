@@ -32,20 +32,140 @@ class CashuHelper {
 	}
 
 	/**
-	 * Convert a fiat amount to sats using Coingecko.
+	 * Convert a fiat amount to sats and return a full quote bundle (price + timestamp + source).
 	 *
 	 * @param float  $amount amount in fiat
 	 * @param string $fiat   ISO 4217 code, eg "USD", "GBP", "EUR"
 	 *
-	 * @throws \RuntimeException when the API call fails or returns bad data
+	 * @return array{
+	 *   amount_fiat: float,
+	 *   fiat: string,
+	 *   btc_price: float,
+	 *   sats: int,
+	 *   source: string,
+	 *   quoted_at: string
+	 * }
+	 *
+	 * @throws \RuntimeException when both API calls fail or return bad data
 	 */
-	public static function fiatToSats( float $amount, string $fiat = 'USD' ): int {
-		$fiat = strtolower( $fiat );
+	public static function fiatToSats( float $amount, string $fiat = 'USD' ): array {
+		$fiat_upper = strtoupper( trim( $fiat ) );
+		$fiat_lower = strtolower( $fiat_upper );
+
+		$quoted_at = gmdate( 'c' ); // ISO 8601, UTC
+
+		if ( $amount <= 0 ) {
+			return array(
+				'amount_fiat' => (float) $amount,
+				'fiat'        => $fiat_upper,
+				'btc_price'   => 0.0,
+				'sats'        => 0,
+				'source'      => 'none',
+				'quoted_at'   => $quoted_at,
+			);
+		}
+
+		$source = '';
+		try {
+			$btc_price = self::get_btc_price_fiat_coinbase_spot( $fiat_upper );
+			$source    = 'coinbase_spot';
+		} catch ( \RuntimeException $e ) {
+			// Fallback to CoinGecko if Coinbase fails.
+			$btc_price = self::get_btc_price_fiat_coingecko( $fiat_lower );
+			$source    = 'coingecko_simple_price';
+		}
+
+		if ( $btc_price <= 0 ) {
+			throw new \RuntimeException( 'Invalid BTC price (non positive).' );
+		}
+
+		// Return amount in sats, rounded up, min zero
+		$sats = (int) ceil( ( $amount / $btc_price ) * 100000000 );
+		$sats = max( 0, $sats );
+
+		return array(
+			'amount_fiat' => (float) $amount,
+			'fiat'        => $fiat_upper,
+			'btc_price'   => (float) $btc_price,
+			'sats'        => $sats,
+			'source'      => $source,
+			'quoted_at'   => $quoted_at,
+		);
+	}
+
+	/**
+	 * Fetch BTC price in fiat from Coinbase spot endpoint, with short caching.
+	 *
+	 * @param string $fiat_upper e.g. "GBP"
+	 */
+	private static function get_btc_price_fiat_coinbase_spot( string $fiat_upper ): float {
+		$cache_key = 'cashu_btc_spot_cb_' . strtolower( $fiat_upper );
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached && is_numeric( $cached ) && (float) $cached > 0 ) {
+			return (float) $cached;
+		}
+
+		$url      = sprintf( 'https://api.coinbase.com/v2/prices/BTC-%s/spot', rawurlencode( $fiat_upper ) );
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 10,
+				'headers' => array(
+					'Accept' => 'application/json',
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			throw new \RuntimeException( 'Failed to fetch BTC price from Coinbase.' );
+		}
+
+		$code = (int) wp_remote_retrieve_response_code( $response );
+		if ( 200 !== $code ) {
+			throw new \RuntimeException( 'Coinbase returned HTTP ' . absint( $code ) . ' for spot price.' );
+		}
+
+		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		// phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_print_r
+		Logger::debug( 'Coinbase spot response: ' . print_r( $data, true ) );
+
+		if ( ! isset( $data['data']['amount'], $data['data']['currency'] ) ) {
+			throw new \RuntimeException( 'Invalid Coinbase spot response.' );
+		}
+
+		if ( strtoupper( (string) $data['data']['currency'] ) !== $fiat_upper ) {
+			throw new \RuntimeException( 'Coinbase spot currency mismatch.' );
+		}
+
+		$btc_price = (float) $data['data']['amount'];
+		if ( $btc_price <= 0 ) {
+			throw new \RuntimeException( 'Invalid Coinbase spot amount.' );
+		}
+
+		// Cache briefly, enough to protect upstream during bursts.
+		set_transient( $cache_key, $btc_price, 30 );
+
+		return $btc_price;
+	}
+
+	/**
+	 * Fetch BTC price in fiat from CoinGecko simple/price endpoint, with short caching.
+	 *
+	 * @param string $fiat_lower e.g. "gbp"
+	 */
+	private static function get_btc_price_fiat_coingecko( string $fiat_lower ): float {
+		$cache_key = 'cashu_btc_spot_cg_' . $fiat_lower;
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached && is_numeric( $cached ) && (float) $cached > 0 ) {
+			return (float) $cached;
+		}
 
 		$url = add_query_arg(
 			array(
 				'ids'           => 'bitcoin',
-				'vs_currencies' => $fiat,
+				'vs_currencies' => $fiat_lower,
 			),
 			'https://api.coingecko.com/api/v3/simple/price'
 		);
@@ -58,21 +178,21 @@ class CashuHelper {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			throw new \RuntimeException( 'Failed to fetch BTC price.' );
+			throw new \RuntimeException( 'Failed to fetch BTC price from CoinGecko.' );
 		}
 
 		$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-		//phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_print_r
-		Logger::debug( 'Coingecko response: ' . print_r( $data, true ) );
+		// phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_print_r
+		Logger::debug( 'CoinGecko response: ' . print_r( $data, true ) );
 
-		if ( ! isset( $data['bitcoin'][ $fiat ] ) || $data['bitcoin'][ $fiat ] <= 0 ) {
-			throw new \RuntimeException( 'Invalid BTC price response.' );
+		if ( ! isset( $data['bitcoin'][ $fiat_lower ] ) || (float) $data['bitcoin'][ $fiat_lower ] <= 0 ) {
+			throw new \RuntimeException( 'Invalid CoinGecko price response.' );
 		}
 
-		$btc_price = (float) $data['bitcoin'][ $fiat ];
+		$btc_price = (float) $data['bitcoin'][ $fiat_lower ];
 
-		// amount_in_btc = amount_fiat / price_fiat_per_btc
-		// sats = btc * 1e8
-		return (int) round( ( $amount / $btc_price ) * 1e8 );
+		set_transient( $cache_key, $btc_price, 30 );
+
+		return $btc_price;
 	}
 }

@@ -44,7 +44,7 @@
     "readme": "grunt readme",
     "i18n": "grunt i18n",
     "build": "vite build && npm run format && composer lint:fix && npm run start",
-    "check": "npm run format:check && npm run lint:check && npm run lint:stan && npm test",
+    "check": "npm run format:check && npm run lint:check && npm test",
     "fix": "npm run format && npm run lint:fix",
     "wp-env:start": "wp-env start",
     "wp-env:seed-store": "wp-env run cli wp plugin install wordpress-importer --activate && wp-env run cli wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=create",

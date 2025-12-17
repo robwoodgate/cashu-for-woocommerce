@@ -19,6 +19,7 @@ define( 'CASHU_WC_VERSION_KEY', 'CASHU_WC_VERSION' );
 define( 'CASHU_WC_PLUGIN_FILE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CASHU_WC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'CASHU_WC_PLUGIN_ID', 'cashu-for-woocommerce' );
+define( 'CASHU_WC_BIP177_SYMBOL', '₿' );
 
 /**
  * Load Composer autoloader if present, otherwise register a simple PSR-4 autoloader
@@ -125,13 +126,7 @@ add_action(
 			return;
 		}
 
-		wp_enqueue_script(
-			'cashu-backend',
-			CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js',
-			array( 'jquery' ),
-			CASHU_WC_VERSION,
-			true
-		);
+		wp_enqueue_script( 'cashu-backend', CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js', array( 'jquery' ), CASHU_WC_VERSION, true );
 
 		wp_localize_script(
 			'cashu-backend',
@@ -339,7 +334,6 @@ add_filter(
 		}
 
 		$sats = (int) $order->get_meta( '_cashu_expected_amount' );
-		$unit = (string) $order->get_meta( '_cashu_expected_unit' );
 
 		if ( $sats <= 0 ) {
 			return $totals;
@@ -347,7 +341,7 @@ add_filter(
 
 		$totals['cashu_expected_amount'] = array(
 			'label' => __( 'Cashu Amount', 'cashu-for-woocommerce' ),
-			'value' => esc_html( number_format_i18n( $sats ) . ' ' . ( $unit ?: 'sat' ) ),
+			'value' => esc_html( CASHU_WC_BIP177_SYMBOL . number_format_i18n( $sats ) ),
 		);
 
 		return $totals;
