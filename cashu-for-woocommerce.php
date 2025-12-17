@@ -157,25 +157,17 @@ add_action(
 add_action(
 	'wp_enqueue_scripts',
 	function () {
-		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
-			return;
-		}
-
-		// Only enqueue if Cashu is enabled globally.
-		if ( 'yes' !== get_option( 'cashu_enabled', 'no' ) ) {
-			return;
-		}
-
 		$script_handle = 'cashu-checkout';
 		$script_path   = CASHU_WC_PLUGIN_FILE_PATH . 'assets/dist/cashu-checkout.js';
 		$script_url    = CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js';
 
+		// Ignore if bundle has not been built yet.
 		if ( ! file_exists( $script_path ) ) {
-			// Do not break the site if the bundle has not been built yet.
 			return;
 		}
 
-		wp_enqueue_script( $script_handle, $script_url, array(), CASHU_WC_VERSION, true );
+		wp_register_script( $script_handle, $script_url, array(), CASHU_WC_VERSION, true );
+		wp_register_style( $script_handle, CASHU_WC_PLUGIN_URL . 'assets/css/cashu-modal.css', array(), CASHU_WC_VERSION );
 
 		$order_id = null;
 		if ( function_exists( 'is_checkout_pay_page' ) && is_checkout_pay_page() ) {

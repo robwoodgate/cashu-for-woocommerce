@@ -188,30 +188,92 @@ class CashuGateway extends \WC_Payment_Gateway {
 	public function receipt_page( $order_id ) {
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
-			echo '<p>Order not found.</p>';
-
+			echo '<p>' . esc_html__( 'Order not found.', 'cashu-for-woocommerce' ) . '</p>';
 			return;
 		}
 
-		// If someone hits this URL for a different gateway, don’t show anything.
+		// Check payment is for our gateway
 		if ( $order->get_payment_method() !== $this->id ) {
 			return;
 		}
-		echo '<p>Please complete payment for order #' . esc_html( $order->get_order_number() ) . '.</p>';
-		echo '<p>Amount: ' . wp_kses_post( $order->get_formatted_order_total() ) . '</p>';
 
-		echo '<div id="cashu-pay-root"
-		data-order-id="' . esc_attr( $order_id ) . '"
-		data-order-key="' . esc_attr( $order->get_order_key() ) . '"
-		data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"></div>';
+		$amount_sats = absint( $order->get_meta( '_cashu_expected_amount', true ) );
+		if ( $amount_sats <= 0 ) {
+			// Fallback
+			$total       = (float) $order->get_total();
+			$quote       = CashuHelper::fiatToSats( $total, $order->get_currency() );
+			$amount_sats = isset( $quote['sats'] ) ? absint( $quote['sats'] ) : 0;
+		}
 
-		// Optional, hide Woo’s “Pay for order” button if you don’t want a second click.
-		// echo '<style>.woocommerce #order_review .button#place_order{display:none !important;}</style>';
-
-		// Enqueue your JS bundle here or conditionally in wp_enqueue_scripts for is_checkout_pay_page().
+		wp_enqueue_style( 'cashu-checkout' );
 		wp_enqueue_script( 'cashu-checkout' );
 
-		// Output your canvas, token UI, etc, here.
+		// Optional, if your JS needs these.
+		$ajax_url = admin_url( 'admin-ajax.php' );
+		$nonce    = wp_create_nonce( 'cashu_generate_invoice' );
+
+		echo '<div id="cashu-pay-root"
+			data-order-id="' . esc_attr( $order_id ) . '"
+			data-order-key="' . esc_attr( $order->get_order_key() ) . '"
+			data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"
+			data-ajax-url="' . esc_url( $ajax_url ) . '"
+			data-nonce="' . esc_attr( $nonce ) . '"
+			data-amount-sats="' . esc_attr( $amount_sats ) . '"
+			data-fiat-currency="' . esc_attr( $order->get_currency() ) . '"
+			data-fiat-total="' . esc_attr( (string) $order->get_total() ) . '"
+		></div>';
+		?>
+		<section id="cashu-payment" class="cashu-checkout" aria-label="<?php echo esc_attr__( 'Cashu payment', 'cashu-for-woocommerce' ); ?>">
+			<div class="cashu-amount-box cashu-center">
+				<div class="cashu-paywith"><?php echo esc_html__( 'Pay', 'cashu-for-woocommerce' ); ?></div>
+				<h2 class="cashu-amount">
+					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $amount_sats ); ?>
+				</h2>
+				<div class="cashu-paywith"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></div>
+			</div>
+			<div class="cashu-paywith cashu-center">
+				<div class="cashu-pills" role="tablist" aria-label="<?php echo esc_attr__( 'Payment method', 'cashu-for-woocommerce' ); ?>">
+					<button type="button" class="cashu-pill" data-cashu-method="lightning" role="tab" aria-selected="false">
+						<?php echo esc_html__( 'Lightning', 'cashu-for-woocommerce' ); ?>
+					</button>
+					<button type="button" class="cashu-pill is-active" data-cashu-method="cashu" role="tab" aria-selected="true">
+						<?php echo esc_html__( 'Cashu', 'cashu-for-woocommerce' ); ?>
+					</button>
+				</div>
+			</div>
+			<div class="cashu-box">
+				<div class="cashu-qr-wrap">
+					<div class="cashu-qr" data-cashu-qr>
+						<!-- JS renders QR here, canvas or img is fine -->
+					</div>
+
+					<div class="cashu-qr-icon" aria-hidden="true">
+						<img src="<?php echo esc_url( $this->icon ); ?>" alt="">
+					</div>
+				</div>
+
+				<div class="cashu-sep"><span><?php echo esc_html__( 'OR', 'cashu-for-woocommerce' ); ?></span></div>
+
+				<form class="cashu-token">
+					<input
+						type="text"
+						class="cashu-input"
+						name="cashu_token"
+						autocomplete="off"
+						placeholder="<?php echo esc_attr__( 'Enter your cashu token…', 'cashu-for-woocommerce' ); ?>"
+						data-cashu-token-input
+					/>
+					<button type="submit" class="cashu-paybtn">
+						<?php echo esc_html__( 'Pay', 'cashu-for-woocommerce' ); ?>
+					</button>
+
+					<p class="cashu-foot">
+						<?php echo esc_html__( 'Merchant will receive full token worth. No change will be withdrawn.', 'cashu-for-woocommerce' ); ?>
+					</p>
+				</form>
+			</div>
+		</section>
+		<?php
 	}
 
 	// In case you need a webhook, like PayPal IPN etc
