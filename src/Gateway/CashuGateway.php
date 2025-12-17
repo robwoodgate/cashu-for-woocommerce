@@ -141,7 +141,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			// Set order status.
 			$order->update_status(
 				$process_payment_status,
-				_x( 'Awaiting Cashu payment', 'Cashu payment method', 'woocommerce' )
+				_x( 'Awaiting Cashu payment', 'Cashu payment method', 'cashu-for-woocommerce' )
 			);
 
 			// If we've already locked sats for this order, reuse them.
@@ -161,7 +161,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 				// Add sats amount as an order note
 				$msg = sprintf(
 					/* translators: %1$s: Bitcoin symbol, %2$s: Amount in sats, %3$s: ISO 4217 currency code (eg: USD), %4$s: BTC Spot price */
-					__( 'Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)' ),
+					__( 'Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)', 'cashu-for-woocommerce' ),
 					CASHU_WC_BIP177_SYMBOL,
 					$amount_sats,
 					$order->get_currency(),
