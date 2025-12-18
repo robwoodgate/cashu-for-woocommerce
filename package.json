@@ -46,7 +46,7 @@
     "lint:check": "npm run lint:php:check && npm run lint:css:check",
     "lint": "npm run lint:php && npm run lint:css",
     "format:check": "prettier -c cashu-for-woocommerce.php src",
-    "format": "prettier -w cashu-for-woocommerce.php src tests",
+    "format": "prettier -w src tests assets",
     "start": "grunt default",
     "readme": "grunt readme",
     "i18n": "grunt i18n",

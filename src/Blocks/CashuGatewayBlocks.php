@@ -10,7 +10,7 @@ final class CashuGatewayBlocks extends AbstractPaymentMethodType {
 	 *
 	 * @var string
 	 */
-	protected $name = 'cashu';
+	protected $name = 'cashu_default';
 
 	/**
 	 * Gateway instance.
@@ -20,12 +20,12 @@ final class CashuGatewayBlocks extends AbstractPaymentMethodType {
 	private $gateway;
 
 	public function initialize(): void {
-		// Load settings stored by the gateway.
-		$this->settings = get_option( 'woocommerce_cashu_settings', array() );
+		// Load settings stored by the gateway, option key must match gateway id.
+		$this->settings = get_option( 'woocommerce_' . $this->name . '_settings', array() );
 
 		if ( function_exists( 'WC' ) ) {
 			$gateways      = \WC()->payment_gateways()->payment_gateways();
-			$this->gateway = $gateways['cashu'] ?? null;
+			$this->gateway = $gateways[ $this->name ] ?? null;
 		}
 	}
 

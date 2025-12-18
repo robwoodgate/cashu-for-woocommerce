@@ -45,7 +45,9 @@ class CashuModalCheckout {
       this.validateToken(tokenInput.value, status, privkeyInput, meltBtn);
     });
 
-    meltBtn.addEventListener('click', () => this.meltAndPay(tokenInput.value, privkeyInput.value, status));
+    meltBtn.addEventListener('click', () =>
+      this.meltAndPay(tokenInput.value, privkeyInput.value, status),
+    );
 
     modal.querySelector('.cashu-close').addEventListener('click', () => this.close());
   }
@@ -64,7 +66,7 @@ class CashuModalCheckout {
       this.wallet = new Wallet(this.mintUrl);
       await this.wallet.loadMint();
 
-      const locked = proofs.some(p => p.secret.includes('P2PK'));
+      const locked = proofs.some((p) => p.secret.includes('P2PK'));
       privkeyInput.style.display = locked ? 'block' : 'none';
 
       status.textContent = `Valid token (${amount.toLocaleString()} sats). ${locked ? 'Enter privkey.' : 'Ready!'}`;
@@ -106,7 +108,10 @@ class CashuModalCheckout {
       status.textContent = 'Paid!';
 
       if (meltResult.change.length > 0) {
-        const changeToken = getEncodedTokenV4({ mint: this.mintUrl, proofs: meltResult.change });
+        const changeToken = getEncodedTokenV4({
+          mint: this.mintUrl,
+          proofs: meltResult.change,
+        });
         document.getElementById('cashu-change').innerHTML = `
           <p>Change token:</p>
           <textarea readonly>${changeToken}</textarea>
@@ -130,8 +135,8 @@ class CashuModalCheckout {
         action: 'cashu_get_invoice',
         amount: this.amountSats,
         order_id: this.orderId,
-        nonce: cashuCheckout.nonce
-      })
+        nonce: cashuCheckout.nonce,
+      }),
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.data || 'Failed to get invoice');
@@ -145,8 +150,8 @@ class CashuModalCheckout {
       body: new URLSearchParams({
         action: 'cashu_payment_success',
         order_id: this.orderId,
-        nonce: cashuCheckout.nonce
-      })
+        nonce: cashuCheckout.nonce,
+      }),
     });
     const data = await res.json();
     if (!data.success) throw new Error('Failed to mark order paid');

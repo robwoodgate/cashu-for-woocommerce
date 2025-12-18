@@ -9,8 +9,8 @@ use Cashu\WC\Helpers\Logger;
 class GlobalSettings extends \WC_Settings_Page {
 
 	public function __construct() {
-		$this->id    = 'cashu';
-		$this->label = __( 'Cashu', 'cashu-for-woocommerce' );
+		$this->id    = 'cashu_settings';
+		$this->label = __( 'Cashu Settings', 'cashu-for-woocommerce' );
 		parent::__construct();
 	}
 

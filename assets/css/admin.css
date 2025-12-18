@@ -1,15 +1,15 @@
 .cashu-connection-success {
-	color: green;
+  color: green;
 }
 
 .cashu-connection-error {
-	color: red;
+  color: red;
 }
 
 .cashu-review-dismiss {
-	margin-left: 20px;
+  margin-left: 20px;
 }
 
 .cashu-review-dismiss-forever {
-	margin-left: 10px;
+  margin-left: 10px;
 }

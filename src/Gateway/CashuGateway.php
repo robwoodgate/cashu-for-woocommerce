@@ -11,7 +11,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 	public function __construct() {
 		// Init gateway
-		$this->id                 = 'cashu';
+		$this->id                 = 'cashu_default';
 		$this->icon               = CASHU_WC_PLUGIN_URL . 'assets/images/cashu-logo.png';
 		$this->method_title       = __( 'Cashu ecash', 'cashu-for-woocommerce' );
 		$this->method_description = __(
@@ -268,7 +268,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					</button>
 
 					<p class="cashu-foot">
-						<?php echo esc_html__( 'Merchant will receive full token worth. No change will be withdrawn.', 'cashu-for-woocommerce' ); ?>
+						<?php echo esc_html__( 'Fees will be lower if you use ', 'cashu-for-woocommerce' ); ?>
 					</p>
 				</form>
 			</div>
