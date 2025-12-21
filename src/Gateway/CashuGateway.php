@@ -368,6 +368,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$quote_id         = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$quote_expiry     = absint( $order->get_meta( '_cashu_melt_quote_expiry', true ) );
 		$invoice_bolt11   = (string) $order->get_meta( '_cashu_invoice_bolt11', true );
+		$trusted_mint     = (string) $order->get_meta( '_cashu_trusted_mint', true );
+		$mint_host        = preg_replace( '/^www\./i', '', (string) wp_parse_url( $trusted_mint, PHP_URL_HOST ) );
 
 		wp_enqueue_script( 'cashu-checkout' );
 		wp_enqueue_style( 'cashu-checkout' );
@@ -382,6 +384,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			data-melt-quote-id="' . esc_attr( $quote_id ) . '"
 			data-melt-quote-expiry="' . esc_attr( $quote_expiry ) . '"
 			data-invoice-bolt11="' . esc_attr( $invoice_bolt11 ) . '"
+			data-trusted-mint="' . esc_attr( $trusted_mint ) . '"
 		></div>';
 
 		?>
@@ -392,16 +395,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?>
 				</h2>
 				<div class="cashu-paywith"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></div>
-			</div>
-			<div class="cashu-paywith cashu-center">
-				<div class="cashu-pills" role="tablist" aria-label="<?php echo esc_attr__( 'Payment method', 'cashu-for-woocommerce' ); ?>">
-					<button type="button" class="cashu-pill" data-cashu-method="lightning" role="tab" aria-selected="false">
-						<?php echo esc_html__( 'Lightning', 'cashu-for-woocommerce' ); ?>
-					</button>
-					<button type="button" class="cashu-pill is-active" data-cashu-method="cashu" role="tab" aria-selected="true">
-						<?php echo esc_html__( 'Cashu', 'cashu-for-woocommerce' ); ?>
-					</button>
-				</div>
 			</div>
 			<div class="cashu-box">
 				<div class="cashu-qr-wrap">
@@ -430,7 +423,13 @@ class CashuGateway extends \WC_Payment_Gateway {
 					</button>
 
 					<p class="cashu-foot">
-						<?php echo esc_html__( 'Fees will be lower if you use ', 'cashu-for-woocommerce' ); ?>
+						<?php
+						printf(
+							/* translators: %1$s: Mint hostname */
+							esc_html__( 'Fees will be lower if you use %1$s', 'cashu-for-woocommerce' ),
+							'<strong>' . esc_html( $mint_host ) . '</strong>'
+						);
+						?>
 					</p>
 				</form>
 			</div>

@@ -95,7 +95,6 @@ final class ConfirmMeltQuoteController {
 			);
 		}
 
-
 		$trusted_mint = trim( (string) get_option( 'cashu_trusted_mint', '' ) );
 		if ( '' === $trusted_mint ) {
 			return new WP_Error( 'cashu_no_mint', 'Trusted mint not configured.', array( 'status' => 500 ) );
