@@ -98,13 +98,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 			true
 		);
 
-		$order_id = isset( $_GET['order-pay'] ) ? absint( $_GET['order-pay'] ) : 0; // phpcs:ignore
 		wp_localize_script(
 			'cashu-checkout',
 			'cashu_wc',
 			array(
 				'rest_root'     => esc_url_raw( rest_url( 'cashu-wc/v1/' ) ),
-				'order_id'      => $order_id ?: null,
 				'confirm_route' => 'confirm-melt-quote',
 			)
 		);
@@ -124,12 +122,18 @@ class CashuGateway extends \WC_Payment_Gateway {
 		}
 
 		$total = (float) $order->get_total();
-		if ( 0 === $total ) {
+
+		if ( 0.0 === $total ) {
 			// No payment needed
 			$order->payment_complete();
 		} else {
-			// Setup cashu payment
-			$this->setup_cashu_payment( $order );
+			$result = $this->setup_cashu_payment( $order );
+
+			if ( is_wp_error( $result ) ) {
+				Logger::error( 'Cashu setup failed: ' . $result->get_error_message() );
+				wc_add_notice( __( 'Cashu payment setup failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
+				return array( 'result' => 'failure' );
+			}
 		}
 
 		WC()->cart->empty_cart();
@@ -145,77 +149,74 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 *
 	 * @param WC_Order $order Order.
 	 *
-	 * @return array
+	 * @return true|\WP_Error
 	 */
 	private function setup_cashu_payment( WC_Order $order ) {
-		/**
-		 * Filter the order status for cashu payment (Default: 'pending').
-		 *
-		 * @since 3.6.0
-		 *
-		 * @param string $status The default status.
-		 * @param object $order  The order object.
-		 */
 		$process_payment_status = apply_filters(
 			'woocommerce_cashu_process_payment_order_status',
 			OrderStatus::PENDING,
 			$order
 		);
 
-		// Set order status.
 		$order->update_status(
 			$process_payment_status,
 			_x( 'Awaiting Cashu payment', 'Cashu payment method', 'cashu-for-woocommerce' )
 		);
 
 		// 1) Determine invoice amount in sats (merchant receives this).
+		$invoice_amount_sats = $this->get_or_set_invoice_amount_sats( $order );
+		if ( is_wp_error( $invoice_amount_sats ) ) {
+			return $invoice_amount_sats;
+		}
+
+		// 2) Create or reuse melt quote, store fee reserve, set headline expected amount.
+		$this->ensure_melt_quote_for_order( $order, (int) $invoice_amount_sats );
+
+		$order->save();
+
+		return true;
+	}
+
+	/**
+	 * Determine the invoice amount in sats, reusing any existing value.
+	 *
+	 * @param WC_Order $order Order.
+	 *
+	 * @return int|\WP_Error
+	 */
+	private function get_or_set_invoice_amount_sats( WC_Order $order ) {
 		$invoice_amount_sats = absint( $order->get_meta( '_cashu_invoice_amount_sats', true ) );
+		if ( $invoice_amount_sats > 0 ) {
+			return $invoice_amount_sats;
+		}
 
+		$total = (float) $order->get_total();
+		$quote = CashuHelper::fiatToSats( $total, $order->get_currency() );
+
+		$invoice_amount_sats = absint( $quote['sats'] ?? 0 );
 		if ( $invoice_amount_sats <= 0 ) {
-			$total               = (float) $order->get_total();
-			$quote               = CashuHelper::fiatToSats( $total, $order->get_currency() );
-			$invoice_amount_sats = absint( $quote['sats'] ?? 0 );
+			Logger::error( 'Cashu quote failed, sats amount is invalid.' );
+			return new \WP_Error( 'cashu_quote_failed', 'Cashu quote failed.' );
+		}
 
-			if ( $invoice_amount_sats <= 0 ) {
-				Logger::error( 'Cashu quote failed, sats amount is invalid.' );
-				wc_add_notice( __( 'Cashu pricing failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
-				return array( 'result' => 'failure' );
-			}
+		$order->update_meta_data( '_cashu_invoice_amount_sats', $invoice_amount_sats );
+		$order->update_meta_data( '_cashu_expected_unit', 'sat' );
+		$order->update_meta_data( '_cashu_btc_price', (string) ( $quote['btc_price'] ?? '' ) );
+		$order->update_meta_data( '_cashu_price_source', (string) ( $quote['source'] ?? '' ) );
+		$order->update_meta_data( '_cashu_quoted_at', (string) ( $quote['quoted_at'] ?? '' ) );
 
-			$order->update_meta_data( '_cashu_invoice_amount_sats', $invoice_amount_sats );
-			$order->update_meta_data( '_cashu_expected_unit', 'sat' );
-			$order->update_meta_data( '_cashu_btc_price', (string) ( $quote['btc_price'] ?? '' ) );
-			$order->update_meta_data( '_cashu_price_source', (string) ( $quote['source'] ?? '' ) );
-			$order->update_meta_data( '_cashu_quoted_at', (string) ( $quote['quoted_at'] ?? '' ) );
-
-			$msg = sprintf(
+		$order->add_order_note(
+			sprintf(
 				/* translators: %1$s: Bitcoin symbol, %2$s: Amount in sats, %3$s: ISO 4217 currency code (eg: USD), %4$s: BTC Spot price */
 				__( 'Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)', 'cashu-for-woocommerce' ),
 				CASHU_WC_BIP177_SYMBOL,
 				$invoice_amount_sats,
 				$order->get_currency(),
 				(string) ( $quote['btc_price'] ?? '' )
-			);
-			$order->add_order_note( $msg );
-		}
-
-		// 2) Create or reuse melt quote, store fee reserve, set headline expected amount.
-		try {
-			$this->ensure_melt_quote_for_order( $order, $invoice_amount_sats );
-		} catch ( \Throwable $e ) {
-			Logger::error( 'Cashu melt quote creation failed: ' . $e->getMessage() );
-			wc_add_notice( __( 'Cashu payment setup failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
-			return array( 'result' => 'failure' );
-		}
-
-		$order->save();
-
-		WC()->cart->empty_cart();
-
-		return array(
-			'result'   => 'success',
-			'redirect' => $order->get_checkout_payment_url( true ),
+			)
 		);
+
+		return $invoice_amount_sats;
 	}
 
 	private function ensure_melt_quote_for_order( \WC_Order $order, int $invoice_amount_sats ): void {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Cashu\WC\Helpers;
 
-use Logger;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -12,11 +11,11 @@ use WP_REST_Server;
 
 final class ConfirmMeltQuoteController {
 
-	private const NAMESPACE = 'cashu-wc/v1';
+	private const REST_NAMESPACE = 'cashu-wc/v1';
 
 	public function register_routes(): void {
 		register_rest_route(
-			self::NAMESPACE,
+			self::REST_NAMESPACE,
 			'/confirm-melt-quote',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -41,7 +40,8 @@ final class ConfirmMeltQuoteController {
 			return false;
 		}
 
-		$order_key = (string) $request->get_param( 'order_key' );
+		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
+
 		if ( '' === $order_key ) {
 			return false;
 		}
@@ -60,11 +60,11 @@ final class ConfirmMeltQuoteController {
 			return false;
 		}
 
-		return \hash_equals( (string) $order->get_order_key(), $order_key );
+		return $order->key_is_valid( $order_key );
 	}
 
 	public function confirm_melt_quote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$order_key = (string) $request->get_param( 'order_key' );
+		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
 
 		$order_id = (int) $request->get_param( 'order_id' );
 		if ( $order_id <= 0 ) {
