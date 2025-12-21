@@ -84,6 +84,18 @@ final class ConfirmMeltQuoteController {
 			return new WP_Error( 'cashu_wrong_gateway', 'Order is not using Cashu.', array( 'status' => 400 ) );
 		}
 
+		// Is already paid?
+		if ( $order->is_paid() ) {
+			return rest_ensure_response(
+				array(
+					'ok'       => true,
+					'state'    => 'PAID',
+					'redirect' => $order->get_checkout_order_received_url(),
+				)
+			);
+		}
+
+
 		$trusted_mint = trim( (string) get_option( 'cashu_trusted_mint', '' ) );
 		if ( '' === $trusted_mint ) {
 			return new WP_Error( 'cashu_no_mint', 'Trusted mint not configured.', array( 'status' => 500 ) );

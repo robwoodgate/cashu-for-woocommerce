@@ -152,24 +152,33 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 * @return true|\WP_Error
 	 */
 	private function setup_cashu_payment( WC_Order $order ) {
+		/**
+		 * Filter the order status for cashu payment (Default: 'pending').
+		 *
+		 * @since 3.6.0
+		 *
+		 * @param string $status The default status.
+		 * @param object $order  The order object.
+		 */
 		$process_payment_status = apply_filters(
 			'woocommerce_cashu_process_payment_order_status',
 			OrderStatus::PENDING,
 			$order
 		);
 
+		// Set order status.
 		$order->update_status(
 			$process_payment_status,
 			_x( 'Awaiting Cashu payment', 'Cashu payment method', 'cashu-for-woocommerce' )
 		);
 
-		// 1) Determine invoice amount in sats (merchant receives this).
+		// Determine invoice amount in sats (merchant receives this).
 		$invoice_amount_sats = $this->get_or_set_invoice_amount_sats( $order );
 		if ( is_wp_error( $invoice_amount_sats ) ) {
 			return $invoice_amount_sats;
 		}
 
-		// 2) Create or reuse melt quote, store fee reserve, set headline expected amount.
+		// Create or reuse melt quote, store fee reserve, set headline expected amount.
 		$this->ensure_melt_quote_for_order( $order, (int) $invoice_amount_sats );
 
 		$order->save();
@@ -185,11 +194,13 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 * @return int|\WP_Error
 	 */
 	private function get_or_set_invoice_amount_sats( WC_Order $order ) {
+		// Return existing sats amount?
 		$invoice_amount_sats = absint( $order->get_meta( '_cashu_invoice_amount_sats', true ) );
 		if ( $invoice_amount_sats > 0 ) {
 			return $invoice_amount_sats;
 		}
 
+		// Do conversion to sats
 		$total = (float) $order->get_total();
 		$quote = CashuHelper::fiatToSats( $total, $order->get_currency() );
 
@@ -199,6 +210,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			return new \WP_Error( 'cashu_quote_failed', 'Cashu quote failed.' );
 		}
 
+		// Set order meta
 		$order->update_meta_data( '_cashu_invoice_amount_sats', $invoice_amount_sats );
 		$order->update_meta_data( '_cashu_expected_unit', 'sat' );
 		$order->update_meta_data( '_cashu_btc_price', (string) ( $quote['btc_price'] ?? '' ) );
