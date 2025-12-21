@@ -10,7 +10,7 @@ const CashuBlockGateway = {
   label: label,
   content: window.wp.element.createElement(Content, null),
   edit: window.wp.element.createElement(Content, null),
-  canMakePayment: () => true,
+  canMakePayment: () => settings.enabled === 'yes',
   ariaLabel: label,
   supports: {
     features: settings.supports || [],

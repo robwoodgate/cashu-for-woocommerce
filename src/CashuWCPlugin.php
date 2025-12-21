@@ -6,6 +6,7 @@ use Cashu\WC\Admin\GlobalSettings;
 use Cashu\WC\Admin\Notice;
 use Cashu\WC\Gateway\CashuGateway;
 use Cashu\WC\Helpers\CashuHelper;
+use Cashu\WC\Helpers\ConfirmMeltQuoteController;
 use Cashu\WC\Helpers\Logger;
 
 final class CashuWCPlugin {
@@ -39,7 +40,7 @@ final class CashuWCPlugin {
 		add_filter( 'woocommerce_payment_gateways', array( self::class, 'initPaymentGateways' ) );
 		add_action( 'before_woocommerce_init', array( $this, 'declareWooCompat' ) );
 
-		// Thank you page (see note below about the hook suffix).
+		// Thank you page for cashu_default gateway.
 		add_action( 'woocommerce_thankyou_cashu_default', array( self::class, 'orderStatusThankYouPage' ), 10, 1 );
 
 		// Order display extras.
@@ -51,6 +52,15 @@ final class CashuWCPlugin {
 
 		// Blocks support.
 		add_action( 'woocommerce_blocks_loaded', array( self::class, 'blocksSupport' ) );
+
+		// REST Routes
+		add_action(
+			'rest_api_init',
+			function (): void {
+				$controller = new ConfirmMeltQuoteController();
+				$controller->register_routes();
+			}
+		);
 
 		// Admin and frontend assets.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueueAdminScripts' ) );

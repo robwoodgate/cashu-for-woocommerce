@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2025-12-18 19:43:19+00:00\n"
+"POT-Creation-Date: 2025-12-20 22:38:11+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -82,79 +82,79 @@ msgstr ""
 msgid "Your Cashu change token"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:16 src/Gateway/CashuGateway.php:55
+#: src/Gateway/CashuGateway.php:17 src/Gateway/CashuGateway.php:56
 msgid "Cashu ecash"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:17
+#: src/Gateway/CashuGateway.php:18
 msgid ""
 "Accept Cashu tokens and melt them straight to your Bitcoin lightning "
 "address."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:30
+#: src/Gateway/CashuGateway.php:31
 msgid "Paste your cashuB… token below."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:53
+#: src/Gateway/CashuGateway.php:54
 msgid "Title"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:58
+#: src/Gateway/CashuGateway.php:59
 msgid "Checkout instructions"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:60
+#: src/Gateway/CashuGateway.php:61
 msgid "You will be able to complete your purchase using Cashu ecash."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:66
+#: src/Gateway/CashuGateway.php:67
 msgid "Enable/Disable"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:67
+#: src/Gateway/CashuGateway.php:68
 msgid "Enable Cashu Gateway"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:164
+#: src/Gateway/CashuGateway.php:165
 #. translators: %1$s: Bitcoin symbol, %2$s: Amount in sats, %3$s: ISO 4217
 #. currency code (eg: USD), %4$s: BTC Spot price
 msgid "Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:191
+#: src/Gateway/CashuGateway.php:192
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:226
+#: src/Gateway/CashuGateway.php:227
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:228 src/Gateway/CashuGateway.php:267
+#: src/Gateway/CashuGateway.php:229 src/Gateway/CashuGateway.php:268
 msgid "Pay"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:235
+#: src/Gateway/CashuGateway.php:236
 msgid "Payment method"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:237
+#: src/Gateway/CashuGateway.php:238
 msgid "Lightning"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:240
+#: src/Gateway/CashuGateway.php:241
 msgid "Cashu"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:255
+#: src/Gateway/CashuGateway.php:256
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:263
+#: src/Gateway/CashuGateway.php:264
 msgid "Enter your cashu token…"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:271
+#: src/Gateway/CashuGateway.php:272
 msgid "Fees will be lower if you use "
 msgstr ""
 
@@ -177,7 +177,7 @@ msgstr ""
 msgid "Rob Woodgate"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:144
+#: src/Gateway/CashuGateway.php:145
 msgctxt "Cashu payment method"
 msgid "Awaiting Cashu payment"
 msgstr ""

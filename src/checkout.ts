@@ -8,10 +8,36 @@ type CashuWindow = Window & {
     nonce_confirm: string;
     lightning_address: string;
     order_id: number | null;
+    rest_root: string;
+    confirm_route: string;
   };
 };
 
 declare const window: CashuWindow;
+
+const url = `${cashu_wc.rest_root}${cashu_wc.confirm_route}`;
+
+const res = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ order_id, order_key }),
+  credentials: 'same-origin',
+});
+
+async function confirmPaid(orderId, orderKey) {
+  const res = await fetch(`${cashu_wc.rest_root}cashu-wc/v1/confirm-melt-quote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order_id: orderId, order_key: orderKey }),
+    credentials: 'same-origin',
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.message || `HTTP ${res.status}`);
+
+  if (json.state === 'PAID' && json.redirect) window.location.href = json.redirect;
+  return json;
+}
 
 async function payWithCashuToken(token: string) {
   setStatus('Decoding token…');

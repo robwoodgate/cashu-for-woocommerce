@@ -88,6 +88,7 @@ final class CashuGatewayBlocks extends AbstractPaymentMethodType {
 			'title'       => $title,
 			'description' => $description,
 			'supports'    => $this->get_supported_features(),
+			'enabled'     => $this->gateway ? $this->gateway->get_option( 'enabled' ) : 'no',
 		);
 	}
 }
