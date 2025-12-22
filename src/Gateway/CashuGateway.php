@@ -78,6 +78,19 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 * Enqueue checkout script on pages where it is needed.
 	 */
 	public function enqueue_scripts() {
+		// QR Code
+		wp_register_script(
+			'cashu-qrcode',
+			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/qrcode.min.js',
+			array( 'jquery' ),
+			CASHU_WC_VERSION,
+			true
+		);
+
+		// Toastr - non-blocking notifications; https://github.com/CodeSeven/toastr
+		// This is the CSS, the script is imported via npm into checkout.ts
+		wp_register_style( 'toastr', CASHU_WC_PLUGIN_URL . 'assets/css/toastr.min.css', array(), CASHU_WC_VERSION, false ); // NB: head
+
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Just enqueuing scripts.
 		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
@@ -93,7 +106,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		wp_enqueue_script(
 			'cashu-checkout',
 			CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js',
-			array(),
+			array( 'jquery', 'cashu-qrcode' ),
 			CASHU_WC_VERSION,
 			true
 		);
@@ -367,12 +380,14 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$fee_reserve_sats = absint( $order->get_meta( '_cashu_melt_fee_reserve_sats', true ) );
 		$quote_id         = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$quote_expiry     = absint( $order->get_meta( '_cashu_melt_quote_expiry', true ) );
-		$invoice_bolt11   = (string) $order->get_meta( '_cashu_invoice_bolt11', true );
+		$invoice_bolt11   = strtoupper( (string) $order->get_meta( '_cashu_invoice_bolt11', true ) );
 		$trusted_mint     = (string) $order->get_meta( '_cashu_trusted_mint', true );
 		$mint_host        = preg_replace( '/^www\./i', '', (string) wp_parse_url( $trusted_mint, PHP_URL_HOST ) );
 
+		wp_enqueue_script( 'cashu-qrcode' );
 		wp_enqueue_script( 'cashu-checkout' );
 		wp_enqueue_style( 'cashu-checkout' );
+		wp_enqueue_style( 'toastr' );
 
 		echo '<div id="cashu-pay-root"
 			data-order-id="' . esc_attr( $order_id ) . '"
@@ -398,7 +413,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			</div>
 			<div class="cashu-box">
 				<div class="cashu-qr-wrap">
-					<div class="cashu-qr" data-cashu-qr>
+					<div class="cashu-qr" id="cashu-qr" data-cashu-qr>
 						<!-- JS renders QR here, canvas or img is fine -->
 					</div>
 

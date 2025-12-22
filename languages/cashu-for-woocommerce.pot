@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2025-12-20 22:38:11+00:00\n"
+"POT-Creation-Date: 2025-12-22 20:51:21+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -74,88 +74,89 @@ msgstr ""
 msgid "Log events to the WooCommerce logs, <a href=\"%s\">view logs</a>."
 msgstr ""
 
-#: src/CashuWCPlugin.php:329
+#: src/CashuWCPlugin.php:339
 msgid "Cashu Amount"
 msgstr ""
 
-#: src/CashuWCPlugin.php:348
+#: src/CashuWCPlugin.php:358
 msgid "Your Cashu change token"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:17 src/Gateway/CashuGateway.php:56
+#: src/Gateway/CashuGateway.php:19 src/Gateway/CashuGateway.php:57
 msgid "Cashu ecash"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:18
+#: src/Gateway/CashuGateway.php:20
 msgid ""
 "Accept Cashu tokens and melt them straight to your Bitcoin lightning "
 "address."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:31
+#: src/Gateway/CashuGateway.php:33
 msgid "Paste your cashuB… token below."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:54
+#: src/Gateway/CashuGateway.php:55
 msgid "Title"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:59
+#: src/Gateway/CashuGateway.php:60
 msgid "Checkout instructions"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:61
+#: src/Gateway/CashuGateway.php:62
 msgid "You will be able to complete your purchase using Cashu ecash."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:67
+#: src/Gateway/CashuGateway.php:68
 msgid "Enable/Disable"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:68
+#: src/Gateway/CashuGateway.php:69
 msgid "Enable Cashu Gateway"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:165
+#: src/Gateway/CashuGateway.php:147
+msgid "Cashu payment setup failed, please try again."
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:236
 #. translators: %1$s: Bitcoin symbol, %2$s: Amount in sats, %3$s: ISO 4217
 #. currency code (eg: USD), %4$s: BTC Spot price
 msgid "Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:192
+#: src/Gateway/CashuGateway.php:310
+#. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
+#. required sats
+msgid ""
+"Cashu melt quote created, invoice=%1$s sats, fee_reserve=%2$s sats, "
+"required=%3$s sats"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:358
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:227
+#: src/Gateway/CashuGateway.php:406
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:229 src/Gateway/CashuGateway.php:268
+#: src/Gateway/CashuGateway.php:408 src/Gateway/CashuGateway.php:437
 msgid "Pay"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:236
-msgid "Payment method"
-msgstr ""
-
-#: src/Gateway/CashuGateway.php:238
-msgid "Lightning"
-msgstr ""
-
-#: src/Gateway/CashuGateway.php:241
-msgid "Cashu"
-msgstr ""
-
-#: src/Gateway/CashuGateway.php:256
+#: src/Gateway/CashuGateway.php:425
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:264
+#: src/Gateway/CashuGateway.php:433
 msgid "Enter your cashu token…"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:272
-msgid "Fees will be lower if you use "
+#: src/Gateway/CashuGateway.php:444
+#. translators: %1$s: Mint hostname
+msgid "Fees will be lower if you use %1$s"
 msgstr ""
 
 #. Plugin Name of the plugin/theme
@@ -177,7 +178,7 @@ msgstr ""
 msgid "Rob Woodgate"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:145
+#: src/Gateway/CashuGateway.php:185
 msgctxt "Cashu payment method"
 msgid "Awaiting Cashu payment"
 msgstr ""

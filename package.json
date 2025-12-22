@@ -8,9 +8,12 @@
     "cashu"
   ],
   "dependencies": {
-    "@cashu/cashu-ts": "^3.1.1",
+    "@cashu/cashu-ts": "^3.2.0",
     "@gandlaf21/bolt11-decode": "^3.1.1",
-    "qrcode": "^1.5.4"
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/toastr": "^2.1.43",
+    "canvas-confetti": "^1.9.4",
+    "toastr": "^2.1.4"
   },
   "devDependencies": {
     "@prettier/plugin-php": "^0.22.2",
