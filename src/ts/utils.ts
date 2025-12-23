@@ -106,3 +106,20 @@ export const debounce = <T extends (...args: any[]) => void>(
     timeoutId = setTimeout(() => func(...args), delay);
   };
 };
+
+export function getErrorMessage(
+  error: unknown,
+  defaultMsg: string = 'Unknown error',
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  // Handle non-Error throws gracefully
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return defaultMsg;
+}

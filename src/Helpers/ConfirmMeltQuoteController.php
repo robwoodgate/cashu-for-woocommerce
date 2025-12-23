@@ -36,30 +36,38 @@ final class ConfirmMeltQuoteController {
 	}
 
 	public function permission_callback( WP_REST_Request $request ): bool {
+		// Check WooCommerce is loaded.
 		if ( ! function_exists( 'wc_get_order' ) || ! function_exists( 'wc_get_order_id_by_order_key' ) ) {
 			return false;
 		}
 
+		// Check we got an order key.
 		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
-
 		if ( '' === $order_key ) {
 			return false;
 		}
 
+		// Check we got an order ID.
 		$order_id = (int) $request->get_param( 'order_id' );
 		if ( $order_id <= 0 ) {
 			$order_id = (int) wc_get_order_id_by_order_key( $order_key );
 		}
-
 		if ( $order_id <= 0 ) {
 			return false;
 		}
 
+		// Check this is a valid order.
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
 
+		// Check order belongs to logged in user (if set).
+		if ( $order->get_user_id() > 0 && (int) get_current_user_id() !== (int) $order->get_user_id() ) {
+			return false;
+		}
+
+		// Check order key is valid for order.
 		return $order->key_is_valid( $order_key );
 	}
 
@@ -83,6 +91,14 @@ final class ConfirmMeltQuoteController {
 		if ( $order->get_payment_method() !== 'cashu_default' ) {
 			return new WP_Error( 'cashu_wrong_gateway', 'Order is not using Cashu.', array( 'status' => 400 ) );
 		}
+
+		// Store any change (idempotent)
+		$change_token = (string) $request->get_param( 'change_token' );
+		$change_saved = (string) $order->get_meta( '_cashu_change', true );
+		if ( '' === $change_saved && '' !== $change_token ) {
+			$order->update_meta_data( '_cashu_change', $change_token );
+		}
+		$order->save();
 
 		// Is already paid?
 		if ( $order->is_paid() ) {
