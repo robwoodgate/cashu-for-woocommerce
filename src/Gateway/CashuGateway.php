@@ -91,19 +91,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// This is the CSS, the script is imported via npm into checkout.ts
 		wp_register_style( 'toastr', CASHU_WC_PLUGIN_URL . 'assets/css/toastr.min.css', array(), CASHU_WC_VERSION, false ); // NB: head
 
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Just enqueuing scripts.
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
-			return;
-		}
-		if ( ! $this->is_available() ) {
-			return;
-		}
-		if ( ! is_ssl() ) {
-			return;
-		}
-
 		// Enqueue and localize
-		wp_enqueue_script(
+		wp_register_script(
 			'cashu-checkout',
 			CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js',
 			array( 'jquery', 'cashu-qrcode' ),
@@ -115,9 +104,19 @@ class CashuGateway extends \WC_Payment_Gateway {
 			'cashu-checkout',
 			'cashu_wc',
 			array(
-				'rest_root'     => esc_url_raw( rest_url( 'cashu-wc/v1/' ) ),
-				'confirm_route' => 'confirm-melt-quote',
+				'rest_root'         => esc_url_raw( rest_url( 'cashu-wc/v1/' ) ),
+				'confirm_route'     => 'confirm-melt-quote',
+				'nonce_invoice'     => wp_create_nonce( 'cashu_generate_invoice' ),
+				'nonce_confirm'     => wp_create_nonce( 'cashu_confirm_payment' ),
+				'lightning_address' => get_option( 'cashu_lightning_address', '' ),
 			)
+		);
+
+		wp_register_style(
+			'cashu-checkout',
+			CASHU_WC_PLUGIN_URL . 'assets/css/cashu-modal.css',
+			array(),
+			CASHU_WC_VERSION
 		);
 	}
 
@@ -307,7 +306,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->add_order_note(
 			sprintf(
 				/* translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total required sats */
-				__( 'Cashu melt quote created, invoice=%1$s sats, fee_reserve=%2$s sats, required=%3$s sats', 'cashu-for-woocommerce' ),
+				__( 'Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, required: %3$s sats', 'cashu-for-woocommerce' ),
 				(string) $amount,
 				(string) $fee_reserve,
 				(string) ( $amount + $fee_reserve )

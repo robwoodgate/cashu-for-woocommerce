@@ -1,15 +1,15 @@
-# Copyright (C) 2025 Rob Woodgate
+# Copyright (C) 2026 Rob Woodgate
 # This file is distributed under the same license as the Cashu For WooCommerce package.
 msgid ""
 msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2025-12-22 23:27:55+00:00\n"
+"POT-Creation-Date: 2026-01-01 15:26:31+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2025-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2026-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: en\n"
@@ -74,11 +74,11 @@ msgstr ""
 msgid "Log events to the WooCommerce logs, <a href=\"%s\">view logs</a>."
 msgstr ""
 
-#: src/CashuWCPlugin.php:339
+#: src/CashuWCPlugin.php:290
 msgid "Cashu Amount"
 msgstr ""
 
-#: src/CashuWCPlugin.php:358
+#: src/CashuWCPlugin.php:309
 msgid "Your Cashu change token"
 msgstr ""
 
@@ -116,45 +116,45 @@ msgstr ""
 msgid "Enable Cashu Gateway"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:147
+#: src/Gateway/CashuGateway.php:146
 msgid "Cashu payment setup failed, please try again."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:236
+#: src/Gateway/CashuGateway.php:235
 #. translators: %1$s: Bitcoin symbol, %2$s: Amount in sats, %3$s: ISO 4217
 #. currency code (eg: USD), %4$s: BTC Spot price
 msgid "Cashu quote: %1$s%2$s (BTC/%3$s: %4$s)"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:310
+#: src/Gateway/CashuGateway.php:309
 #. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
 #. required sats
 msgid ""
-"Cashu melt quote created, invoice=%1$s sats, fee_reserve=%2$s sats, "
-"required=%3$s sats"
+"Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, "
+"required: %3$s sats"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:358
+#: src/Gateway/CashuGateway.php:357
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:406
+#: src/Gateway/CashuGateway.php:405
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:408 src/Gateway/CashuGateway.php:437
+#: src/Gateway/CashuGateway.php:407 src/Gateway/CashuGateway.php:436
 msgid "Pay"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:425
+#: src/Gateway/CashuGateway.php:424
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:433
+#: src/Gateway/CashuGateway.php:432
 msgid "Enter your cashu token…"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:444
+#: src/Gateway/CashuGateway.php:443
 #. translators: %1$s: Mint hostname
 msgid "Fees will be lower if you use %1$s"
 msgstr ""
@@ -178,7 +178,7 @@ msgstr ""
 msgid "Rob Woodgate"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:185
+#: src/Gateway/CashuGateway.php:184
 msgctxt "Cashu payment method"
 msgid "Awaiting Cashu payment"
 msgstr ""

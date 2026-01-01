@@ -62,9 +62,8 @@ final class CashuWCPlugin {
 			}
 		);
 
-		// Admin and frontend assets.
+		// Admin scripts.
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueueAdminScripts' ) );
-		add_action( 'wp_enqueue_scripts', array( $this, 'enqueueFrontendScripts' ) );
 
 		// Admin AJAX.
 		add_action( 'wp_ajax_cashu_notifications', array( $this, 'processAjaxNotification' ) );
@@ -160,54 +159,6 @@ final class CashuWCPlugin {
 			array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce'    => wp_create_nonce( 'cashu-notifications-nonce' ),
-			)
-		);
-	}
-
-	public function enqueueFrontendScripts(): void {
-		// Only needed during checkout related pages.
-		$is_order_pay = function_exists( 'is_checkout_pay_page' ) && is_checkout_pay_page();
-		$is_checkout  = function_exists( 'is_checkout' ) && is_checkout();
-
-		if ( ! $is_checkout && ! $is_order_pay ) {
-			return;
-		}
-
-		$script_path = CASHU_WC_PLUGIN_FILE_PATH . 'assets/dist/cashu-checkout.js';
-		if ( ! file_exists( $script_path ) ) {
-			return;
-		}
-
-		wp_enqueue_script(
-			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js',
-			array(),
-			CASHU_WC_VERSION,
-			true
-		);
-
-		wp_enqueue_style(
-			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/css/cashu-modal.css',
-			array(),
-			CASHU_WC_VERSION
-		);
-
-		$order_id = null;
-		if ( $is_order_pay ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$order_id = isset( $_GET['order-pay'] ) ? absint( wp_unslash( $_GET['order-pay'] ) ) : null;
-		}
-
-		wp_localize_script(
-			'cashu-checkout',
-			'cashu_wc',
-			array(
-				'ajax_url'          => admin_url( 'admin-ajax.php' ),
-				'nonce_invoice'     => wp_create_nonce( 'cashu_generate_invoice' ),
-				'nonce_confirm'     => wp_create_nonce( 'cashu_confirm_payment' ),
-				'lightning_address' => get_option( 'cashu_lightning_address', '' ),
-				'order_id'          => $order_id,
 			)
 		);
 	}

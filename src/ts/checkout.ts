@@ -11,6 +11,7 @@ import {
   MeltQuoteBolt11Response,
   MintQuoteBaseResponse,
   MeltQuoteBaseResponse,
+  MeltQuoteState,
 } from '@cashu/cashu-ts';
 import {
   copyTextToClipboard,
@@ -19,6 +20,7 @@ import {
   debounce,
   getErrorMessage,
 } from './utils';
+import toastr from 'toastr';
 
 type CashuWindow = Window & {
   cashu_wc?: {
@@ -35,10 +37,11 @@ declare const QRCode: any;
 type CurrencyUnit = 'btc' | 'sat' | 'msat' | string;
 
 type ConfirmPaidResponse = {
-  paid?: boolean;
-  success?: boolean;
-  redirect_url?: string;
+  ok?: boolean;
+  state?: MeltQuoteState & 'EXPIRED';
+  redirect?: string;
   message?: string;
+  expiry?: number | null;
 };
 
 type RootData = {
@@ -114,8 +117,6 @@ jQuery(function ($) {
 
   void listenForMeltPaid(data);
   void confirmPaidAndMaybeRedirect(data);
-
-  setStatus('Ready.');
 });
 
 function renderQr(bolt11: string): void {
@@ -196,36 +197,15 @@ async function startMeltFromToken(
   $input: JQuery<HTMLElement>,
 ): Promise<void> {
   lockUi($btn, $input, true);
-  setStatus('Checking token…');
+  setStatus('Checking token...');
 
-  // Get token metadata
-  let meta: TokenMetadata;
-  try {
-    meta = getTokenMetadata(token);
-  } catch (e) {
-    const message = getErrorMessage(e);
-    console.error(message);
-    toastr.error(message);
-    lockUi($btn, $input, false);
-    setStatus('That token does not look valid.');
+  // Validate and get token mint
+  const tokenMint = getTokenMint(token, $btn, $input);
+  if (!tokenMint) {
     return;
   }
 
-  // Validate metadata early
-  const tokenMint = meta.mint;
-  const tokenUnit = meta.unit ?? 'sat';
-  if (!tokenMint || meta.amount === 0) {
-    lockUi($btn, $input, false);
-    setStatus('Token has no spendable proofs.');
-    return;
-  }
-  if (tokenUnit !== 'sat') {
-    lockUi($btn, $input, false);
-    setStatus('This checkout expects sat denominated tokens.');
-    return;
-  }
-
-  setStatus('Connecting to mint…');
+  setStatus('Connecting to mint...');
 
   let fromWallet: Wallet;
   let toWallet: Wallet;
@@ -242,48 +222,62 @@ async function startMeltFromToken(
     return;
   }
 
-  // Calculate fees for melting this token and check we have enough left over to
-  // pay our trusted mint's melt invoice.
-  const fees = fromWallet.getFeesForProofs(proofs);
-  const amount = sumProofs(proofs) - fees;
-  if (amount < data.expectedPaySats) {
-    lockUi($btn, $input, false);
-    setStatus(
-      `Token amount (${amount}) is too small after your mint's fees: ${fees}. Please paste a larger token.`,
-    );
-    return;
-  }
-
   try {
-    setStatus('Paying invoice...');
-
+    let fees = fromWallet.getFeesForProofs(proofs);
+    let amount = sumProofs(proofs);
     let change: string[] = [];
 
     // if proofs are from another mint, create a mint quote at our trusted mint
     // and melt quote at the untrusted mint to pay for the trusted proofs.
     if (!sameMint(tokenMint, data.trustedMint)) {
+      setStatus(`Calculating melt fees for ${tokenMint} token...`);
       const trMintQuote = await toWallet.createMintQuoteBolt11(data.expectedPaySats);
       const utMeltQuote = await fromWallet.createMeltQuoteBolt11(trMintQuote.request);
+      const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
+      const meltFees = utMeltQuote.fee_reserve + fees;
+      if (amount < required) {
+        lockUi($btn, $input, false);
+        setStatus(
+          `Token amount (${amount}) is too small. Please paste a token of at least ${required} to cover your mint's fees: ${meltFees}`,
+        );
+        return;
+      }
+
       // Execute the melt of untrusted proofs and get trusted ones.
+      setStatus('Melting token...');
       const utMeltRes = await fromWallet.meltProofsBolt11(utMeltQuote, proofs);
       await untilMintQuotePaid(toWallet, trMintQuote);
+      setStatus('Paying invoice...');
       proofs = await toWallet.mintProofsBolt11(data.expectedPaySats, trMintQuote);
+      fees = toWallet.getFeesForProofs(proofs);
+      amount = sumProofs(proofs);
       change = [getChangeToken(utMeltRes, fromWallet.mint.mintUrl)];
+      $input.val(change[0]);
+    }
+
+    // Check we have enough to pay our trusted mint's melt invoice.
+    if (amount - fees < data.expectedPaySats) {
+      lockUi($btn, $input, false);
+      setStatus(
+        `Token amount (${amount}) is too small after your mint's fees: ${fees}. Please paste a larger token.`,
+      );
+      return;
     }
 
     // Melt proofs to pay vendor invoice
-    const quote = await fromWallet.checkMeltQuoteBolt11(data.quoteId);
+    setStatus('Paying invoice...');
+    const quote = await toWallet.checkMeltQuoteBolt11(data.quoteId);
     const meltRes = await toWallet.meltProofsBolt11(quote, proofs);
 
     // If there is change, hand them back to the user as a new token.
-    change = [...change, getChangeToken(meltRes, fromWallet.mint.mintUrl)];
+    change = [...change, getChangeToken(meltRes, toWallet.mint.mintUrl)];
 
     // Now confirm with Woo and redirect if the server agrees it is paid.
-    setStatus('Confirming payment…');
+    setStatus('Confirming payment...');
     await confirmPaidAndMaybeRedirect(data, change.join(', '));
 
     // If confirm says not paid yet (rare), the melt paid listener should still catch up.
-    setStatus('Waiting for confirmation…');
+    setStatus('Waiting for confirmation...');
   } catch (e: any) {
     lockUi($btn, $input, false);
 
@@ -294,6 +288,52 @@ async function startMeltFromToken(
     }
     setStatus('Payment failed.');
   }
+}
+
+/**
+ * Validates a token and returns the token mint
+ * @param  token  Token
+ * @param  $btn   Button element
+ * @param  $input Input element
+ * @return Token mint url or null
+ */
+function getTokenMint(
+  token: string,
+  $btn: JQuery<HTMLElement>,
+  $input: JQuery<HTMLElement>,
+): string | null {
+  lockUi($btn, $input, true);
+  setStatus('Checking token...');
+
+  // Get token metadata
+  let meta: TokenMetadata;
+  try {
+    meta = getTokenMetadata(token);
+  } catch (e) {
+    const message = getErrorMessage(e);
+    console.error(message);
+    toastr.error(message);
+    lockUi($btn, $input, false);
+    setStatus('That token does not look valid.');
+    return null;
+  }
+
+  // Validate metadata
+  const tokenMint = meta.mint;
+  const tokenUnit = meta.unit ?? 'sat';
+  if (!tokenMint || meta.amount === 0) {
+    lockUi($btn, $input, false);
+    setStatus('Token has no spendable proofs.');
+    return null;
+  }
+  if (tokenUnit !== 'sat') {
+    lockUi($btn, $input, false);
+    setStatus('This checkout expects sat denominated tokens.');
+    return null;
+  }
+
+  // Seems ok
+  return tokenMint;
 }
 
 /**
@@ -340,7 +380,7 @@ async function listenForMeltPaid(data: RootData): Promise<void> {
     });
 
     // Once paid, confirm with Woo, then redirect.
-    setStatus('Payment detected, finalising…');
+    setStatus('Payment detected, finalising...');
     await confirmPaidAndMaybeRedirect(data);
   } catch (e) {
     // Timeout or abort is fine, user may refresh or re-try.
@@ -373,6 +413,7 @@ async function confirmPaidAndMaybeRedirect(
 
   if (!restRoot || !route) {
     // If localisation is missing, fall back to return URL only when you have another signal.
+    toastr.error('restRoot not set properly!');
     return;
   }
 
@@ -391,8 +432,7 @@ async function confirmPaidAndMaybeRedirect(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // If your REST route is protected by WP nonce, add it here:
-        // 'X-WP-Nonce': String(window.cashu_wc?.wp_nonce ?? ''),
+        // 'X-WP-Nonce': String(window.cashu_wc?.nonce_confirm ?? ''),
       },
       credentials: 'same-origin',
       body: JSON.stringify(payload),
@@ -401,20 +441,18 @@ async function confirmPaidAndMaybeRedirect(
     return;
   }
 
-  if (!res.ok) return;
-
   let json: ConfirmPaidResponse | null = null;
   try {
     json = (await res.json()) as ConfirmPaidResponse;
   } catch {
-    json = null;
+    return;
   }
 
-  const paid = Boolean(json?.paid ?? json?.success);
-  if (!paid) return;
+  if (!json || json.state !== 'PAID') return;
 
   doConfettiBomb();
-  const redirectUrl = String(json?.redirect_url ?? data.returnUrl);
+  await delay(2000);
+  const redirectUrl = String(json?.redirect ?? data.returnUrl);
   if (redirectUrl) {
     window.location.assign(redirectUrl);
   }

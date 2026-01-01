@@ -62,8 +62,9 @@ final class ConfirmMeltQuoteController {
 			return false;
 		}
 
-		// Check order belongs to logged in user (if set).
-		if ( $order->get_user_id() > 0 && (int) get_current_user_id() !== (int) $order->get_user_id() ) {
+		$current_user = (int) get_current_user_id();
+		$order_user   = (int) $order->get_customer_id();
+		if ( $current_user > 0 && $order_user > 0 && $current_user !== $order_user ) {
 			return false;
 		}
 
@@ -177,7 +178,7 @@ final class ConfirmMeltQuoteController {
 			// Idempotent, do nothing if already completed.
 			if ( ! $order->is_paid() ) {
 				$order->payment_complete( $quote_id );
-				$order->add_order_note( sprintf( 'Cashu melt quote paid, quote=%s', $quote_id ) );
+				$order->add_order_note( sprintf( 'Cashu melt quote paid: %s', $quote_id ) );
 			}
 
 			return rest_ensure_response(
