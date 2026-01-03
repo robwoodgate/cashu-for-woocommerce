@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cashu\WC\Helpers;
 
+use WC_Order;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -12,6 +13,11 @@ use WP_REST_Server;
 final class ConfirmMeltQuoteController {
 
 	private const REST_NAMESPACE = 'cashu-wc/v1';
+
+	// Store each token as its own meta row to avoid “first writer wins” races.
+	private const META_CHANGE_TOKENS     = '_cashu_change_tokens';
+	private const META_CHANGE_LATEST     = '_cashu_change_latest';
+	private const META_CHANGE_UPDATED_AT = '_cashu_change_updated_at';
 
 	public function register_routes(): void {
 		register_rest_route(
@@ -22,13 +28,20 @@ final class ConfirmMeltQuoteController {
 				'callback'            => array( $this, 'confirm_melt_quote' ),
 				'permission_callback' => array( $this, 'permission_callback' ),
 				'args'                => array(
-					'order_key' => array(
+					'order_key'     => array(
 						'type'     => 'string',
 						'required' => true,
 					),
-					'order_id'  => array(
+					'order_id'      => array(
 						'type'     => 'integer',
+						'required' => true,
+					),
+					'change_tokens' => array(
+						'type'     => 'array',
 						'required' => false,
+						'items'    => array(
+							'type' => 'string',
+						),
 					),
 				),
 			)
@@ -36,25 +49,23 @@ final class ConfirmMeltQuoteController {
 	}
 
 	public function permission_callback( WP_REST_Request $request ): bool {
-		// Check WooCommerce is loaded.
 		if ( ! function_exists( 'wc_get_order' ) ) {
 			return false;
 		}
 
-		// Check we got an order ID & Key
 		$order_id  = (int) $request->get_param( 'order_id' );
-		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
+		$order_key = (string) $request->get_param( 'order_key' );
+		$order_key = sanitize_text_field( $order_key );
+
 		if ( '' === $order_key || $order_id <= 0 ) {
 			return false;
 		}
 
-		// Check this is a valid order.
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
 
-		// Check order key is valid for order.
 		return $order->key_is_valid( $order_key );
 	}
 
@@ -69,20 +80,22 @@ final class ConfirmMeltQuoteController {
 			return new WP_Error( 'cashu_no_order', 'Order not found.', array( 'status' => 404 ) );
 		}
 
-		// Only for this gateway.
 		if ( $order->get_payment_method() !== 'cashu_default' ) {
 			return new WP_Error( 'cashu_wrong_gateway', 'Order is not using Cashu.', array( 'status' => 400 ) );
 		}
 
-		// Store any change (idempotent)
-		$change_token = (string) $request->get_param( 'change_token' );
-		$change_saved = (string) $order->get_meta( '_cashu_change', true );
-		if ( '' === $change_saved && '' !== $change_token ) {
-			$order->update_meta_data( '_cashu_change', $change_token );
+		// Store change tokens (append, dedupe).
+		// Do this early so we keep tokens even if paid already.
+		$tokens = $this->normalise_change_tokens( $request->get_param( 'change_tokens' ) );
+		if ( ! empty( $tokens ) ) {
+			$did_add = $this->merge_change_tokens( $order, $tokens );
+			if ( $did_add ) {
+				$order->update_meta_data( self::META_CHANGE_UPDATED_AT, time() );
+				$order->save();
+			}
 		}
-		$order->save();
 
-		// Is already paid?
+		// Already paid, nothing else to do.
 		if ( $order->is_paid() ) {
 			return rest_ensure_response(
 				array(
@@ -156,7 +169,6 @@ final class ConfirmMeltQuoteController {
 		$order->save();
 
 		if ( 'PAID' === $state ) {
-			// Idempotent, do nothing if already completed.
 			if ( ! $order->is_paid() ) {
 				$order->payment_complete( $quote_id );
 				$order->add_order_note( sprintf( 'Cashu melt quote paid: %s', $quote_id ) );
@@ -171,7 +183,6 @@ final class ConfirmMeltQuoteController {
 			);
 		}
 
-		// UNPAID, PENDING, FAILED, etc.
 		return rest_ensure_response(
 			array(
 				'ok'     => true,
@@ -179,5 +190,90 @@ final class ConfirmMeltQuoteController {
 				'expiry' => isset( $data['expiry'] ) ? (int) $data['expiry'] : null,
 			)
 		);
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function normalise_change_tokens( mixed $param ): array {
+		if ( ! is_array( $param ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $param as $t ) {
+			$s = trim( (string) $t );
+			if ( '' === $s ) {
+				continue;
+			}
+
+			// Lightweight sanity checks, avoid accidental garbage and runaway payload sizes.
+			if ( strlen( $s ) > 15000 ) {
+				continue;
+			}
+			if ( 0 !== stripos( $s, 'cashu' ) ) {
+				continue;
+			}
+
+			$out[] = $s;
+
+			// Hard cap per request to prevent abuse.
+			if ( count( $out ) >= 10 ) {
+				break;
+			}
+		}
+
+		// Dedupe within the request
+		$out = array_values( array_unique( $out ) );
+
+		return $out;
+	}
+
+	/**
+	 * Append new tokens as separate meta rows (deduped against existing),
+	 * this avoids clobbering if two confirms hit close together.
+	 *
+	 * @param WC_Order $order
+	 * @param string[] $tokens
+	 */
+	private function merge_change_tokens( WC_Order $order, array $tokens ): bool {
+		$existing = $this->get_existing_change_tokens( $order );
+		$added    = false;
+
+		foreach ( $tokens as $t ) {
+			if ( in_array( $t, $existing, true ) ) {
+				continue;
+			}
+			$order->add_meta_data( self::META_CHANGE_TOKENS, $t, false );
+			$existing[] = $t;
+			$added      = true;
+		}
+
+		if ( $added ) {
+			$order->update_meta_data( self::META_CHANGE_LATEST, end( $existing ) ?: '' );
+		}
+
+		return $added;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function get_existing_change_tokens( WC_Order $order ): array {
+		$vals = $order->get_meta( self::META_CHANGE_TOKENS, false );
+		if ( ! is_array( $vals ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $vals as $val ) {
+			$v = ( $val instanceof \WC_Meta_Data ) ? $val->value : $val;
+			$s = trim( (string) $v );
+			if ( '' !== $s ) {
+				$out[] = $s;
+			}
+		}
+
+		return array_values( array_unique( $out ) );
 	}
 }

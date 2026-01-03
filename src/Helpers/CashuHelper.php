@@ -81,6 +81,7 @@ class CashuHelper {
 		// Return amount in sats, rounded up, min zero
 		$sats = (int) ceil( ( $amount / $btc_price ) * 100000000 );
 		$sats = max( 0, $sats );
+		$sats = 21; // debug
 
 		return array(
 			'amount_fiat' => (float) $amount,

@@ -1,26 +1,15 @@
 import {
-  getDecodedToken,
   getEncodedTokenV4,
   getTokenMetadata,
   Wallet,
-  Token,
   sumProofs,
-  TokenMetadata,
   Proof,
   MeltProofsResponse,
-  MeltQuoteBolt11Response,
-  MintQuoteBaseResponse,
-  MeltQuoteBaseResponse,
   MeltQuoteState,
   MintQuoteBolt11Response,
+  TokenMetadata,
 } from '@cashu/cashu-ts';
-import {
-  copyTextToClipboard,
-  doConfettiBomb,
-  delay,
-  debounce,
-  getErrorMessage,
-} from './utils';
+import { copyTextToClipboard, doConfettiBomb, delay, getErrorMessage } from './utils';
 import toastr from 'toastr';
 
 type CashuWindow = Window & {
@@ -37,7 +26,7 @@ type CurrencyUnit = 'btc' | 'sat' | 'msat' | string;
 
 type ConfirmPaidResponse = {
   ok?: boolean;
-  state?: MeltQuoteState & 'EXPIRED';
+  state?: MeltQuoteState | 'EXPIRED';
   redirect?: string;
   message?: string;
   expiry?: number | null;
@@ -47,92 +36,478 @@ type RootData = {
   orderId: number;
   orderKey: string;
   returnUrl: string;
-  expectedPaySats: number;
-  quoteId: string;
-  quoteExpiry: number;
+  expectedPaySats: number; // headline amount user must cover (invoice + fee_reserve)
+  quoteId: string; // melt quote id (vendor payment)
+  quoteExpiry: number; // unix seconds, may be 0
   trustedMint: string;
 };
 
-// Clean up when leaving the page
+type StoredMintQuote = {
+  mint: string;
+  amount: number;
+  quote: string;
+  request: string;
+  expiry?: number | null;
+};
+
+// Set toastr options
+toastr.options = { positionClass: 'toast-bottom-center' };
+
+// Create AbortController for websocket management
 const ac = new AbortController();
 window.addEventListener('pagehide', () => ac.abort(), { once: true });
 window.addEventListener('beforeunload', () => ac.abort(), { once: true });
 
-// Trusted Mint Quote
-let mintQuote: MintQuoteBolt11Response | null = null;
+// Cache wallets by mintUrl|unit
+const walletCache = new Map<string, Promise<Wallet>>();
 
-jQuery(async function ($) {
-  const $root = $('#cashu-pay-root');
-  const $qrcode = $('#cashu-qr');
-  if ($root.length === 0) return;
-
-  // Read the order data
-  const data = readRootData($root);
-  if (!data) {
-    setStatus('Payment data incomplete, token payment may not work yet.');
-    return;
-  }
-
-  // Get mint quote and create QR code
-  const wallet = await getWalletWithUnit(data.trustedMint, 'sat');
-  mintQuote = await wallet.createMintQuoteBolt11(data.expectedPaySats);
-  renderQr();
-
-  // Wire up the UI
-  const $form = $('form.cashu-token');
-  const $input = $('[data-cashu-token-input]');
-  const $btn = $form.find('button[type="submit"]');
-
-  // Add copy action
-  $qrcode.on('click', () => {
-    copyTextToClipboard(mintQuote!.request);
-  });
-
-  $input.on('paste', () => {
-    window.setTimeout(() => {
-      const token = String(($input as any).val() ?? '').trim();
-      if (token) void startMeltFromToken(token, data, $btn, $input);
-    }, 0);
-  });
-
-  $form.on('submit', (e) => {
-    e.preventDefault();
-    const token = String(($input as any).val() ?? '').trim();
-    if (!token) {
-      setStatus('Paste a Cashu token first.');
-      return;
-    }
-    void startMeltFromToken(token, data, $btn, $input);
-  });
-
-  void listenForMintPaid(data, $btn, $input);
-  void listenForMeltPaid(data);
-  void confirmPaidAndMaybeRedirect(data);
-});
-
-function renderQr(): void {
-  const el = document.getElementById('cashu-qr');
-  if (!el || !mintQuote) return;
-
-  // Clear anything left behind by a previous render
-  el.innerHTML = '';
-
-  // QRCode sometimes prefers a real element, not a jQuery wrapper
-  // eslint-disable-next-line no-new
-  new QRCode(el, {
-    text: 'lightning:' + mintQuote.request,
-    width: 360,
-    height: 360,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.Q,
-  });
+function getWalletCached(mintUrl: string, unit: CurrencyUnit = 'sat'): Promise<Wallet> {
+  const key = `${String(mintUrl).replace(/\/+$/, '')}|${unit}`;
+  const existing = walletCache.get(key);
+  if (existing) return existing;
+  // Start loading wallet (IIFE)
+  const p = (async () => {
+    const w = new Wallet(mintUrl, { unit });
+    await w.loadMint();
+    return w;
+  })();
+  // Cache unless load fails
+  p.catch(() => walletCache.delete(key));
+  walletCache.set(key, p);
+  return p;
 }
 
 /**
- * Reads all data-* attributes you output in receipt_page().
+ * Bootstrap checkout
  */
-function readRootData($root: JQuery<HTMLElement>): RootData | null {
+jQuery(function ($) {
+  const $root = $('#cashu-pay-root');
+  if ($root.length === 0) return;
+
+  // Load checkout data
+  let data: RootData;
+  try {
+    data = readRootData($root);
+  } catch (_e) {
+    $root
+      .parent()
+      .find('.cashu-foot')
+      .text('Payment data incomplete, please refresh and try again.');
+    return;
+  }
+  // init UI
+  const $scope = $root.parent();
+  const $form = $scope.find('form.cashu-token');
+  const $input = $scope.find('[data-cashu-token-input]');
+  const $btn = $form.find('button[type="submit"]');
+  const $foot = $scope.find('.cashu-foot');
+  const $qr = $scope.find('#cashu-qr');
+
+  const status = (msg: string) => $foot.text(msg);
+  const lock = (locked: boolean) => {
+    $btn.prop('disabled', locked);
+    $input.prop('disabled', locked);
+  };
+  const getToken = () => String($input.val() ?? '').trim();
+
+  const ls = {
+    mq: `cashu_wc_mq_${data.orderId}`,
+    change: `cashu_wc_change_${data.orderId}`,
+    recovery: `cashu_wc_recovery_${data.orderId}`, // keep as invisible safety
+  };
+
+  const trustedWalletP = getWalletCached(data.trustedMint, 'sat');
+
+  let busy = false;
+  let mintHandled = false; // prevent double-mint/double-melt from the same quote
+  let mqP: Promise<StoredMintQuote> | null = null;
+
+  // Simple locking function
+  async function exclusive<T>(fn: () => Promise<T>): Promise<T | undefined> {
+    if (busy) {
+      toastr.error('Payment already in progress');
+      return Promise.resolve(undefined);
+    }
+    busy = true;
+    lock(true);
+    try {
+      return await fn();
+    } catch (e) {
+      toastr.error(getErrorMessage(e));
+      status(getErrorMessage(e));
+    } finally {
+      busy = false;
+      lock(false);
+    }
+  }
+
+  function loadJson<T>(key: string): T | null {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveJson(key: string, val: any): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch {
+      // ignore
+    }
+  }
+
+  function deleteJson(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  }
+
+  function rememberChangeTokens(tokens: string[]): void {
+    const clean = tokens.map((t) => String(t).trim()).filter(Boolean);
+    if (clean.length === 0) return;
+
+    const existing = loadJson<string[]>(ls.change) ?? [];
+    const merged = Array.from(new Set([...existing, ...clean])).slice(-10);
+    saveJson(ls.change, merged);
+  }
+
+  function getChangeToken(meltResponse: MeltProofsResponse, mintUrl: string): string {
+    const change = Array.isArray(meltResponse?.change) ? meltResponse.change : [];
+    if (change.length === 0) return '';
+    return getEncodedTokenV4({ mint: mintUrl, proofs: change, unit: 'sat' });
+  }
+
+  function renderQr(text: string): void {
+    const el = $qr.get(0) as HTMLElement | undefined;
+    if (!el || typeof QRCode === 'undefined') return;
+    el.innerHTML = '';
+    // eslint-disable-next-line no-new
+    new QRCode(el, {
+      text,
+      width: 360,
+      height: 360,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.Q,
+    });
+  }
+
+  function storedMintQuoteLooksUsable(mq: StoredMintQuote | null): mq is StoredMintQuote {
+    if (!mq) return false;
+    if (!mq.quote || !mq.request || !mq.mint) return false;
+    if (mq.amount !== data.expectedPaySats) return false;
+    if (!sameMint(mq.mint, data.trustedMint)) return false;
+
+    const exp = typeof mq.expiry === 'number' ? mq.expiry : 0;
+    const now = Math.floor(Date.now() / 1000);
+    if (exp > 0 && exp <= now) return false;
+    return true;
+  }
+
+  async function ensureMintQuote(): Promise<StoredMintQuote> {
+    if (mqP) return mqP;
+
+    mqP = (async () => {
+      const cached = loadJson<StoredMintQuote>(ls.mq);
+      if (storedMintQuoteLooksUsable(cached)) return cached;
+
+      const wallet = await trustedWalletP;
+      const mq = await wallet.createMintQuoteBolt11(data.expectedPaySats);
+
+      const store: StoredMintQuote = {
+        mint: data.trustedMint,
+        amount: data.expectedPaySats,
+        quote: mq.quote,
+        request: mq.request,
+        expiry: mq.expiry ?? null,
+      };
+      saveJson(ls.mq, store);
+      return store;
+    })();
+
+    mqP.catch(() => {
+      mqP = null;
+    });
+
+    return mqP;
+  }
+
+  async function confirmOnce(
+    extraChangeTokens: string[] = [],
+  ): Promise<ConfirmPaidResponse | null> {
+    const restRoot = String(window.cashu_wc?.rest_root ?? '');
+    const route = String(window.cashu_wc?.confirm_route ?? '');
+    if (!restRoot || !route) return null;
+
+    const endpoint = restRoot.replace(/\/?$/, '/') + route.replace(/^\//, '');
+
+    const stored = loadJson<string[]>(ls.change) ?? [];
+    const allChange = Array.from(
+      new Set([...stored, ...extraChangeTokens.map(String)]),
+    ).filter(Boolean);
+
+    const payload: any = {
+      order_id: data.orderId,
+      order_key: data.orderKey,
+      quote_id: data.quoteId,
+    };
+    if (allChange.length > 0) payload.change_tokens = allChange;
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json()) as ConfirmPaidResponse;
+
+      if (json?.state === 'PAID') {
+        doConfettiBomb();
+        await delay(2000);
+        window.location.assign(String(json.redirect ?? data.returnUrl));
+      }
+
+      if (json?.state === 'EXPIRED') {
+        status('This payment quote has expired, please refresh the page.');
+      }
+
+      return json ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function confirmUntilPaid(attempts: number, waitMs: number): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      const r = await confirmOnce();
+      if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
+      await delay(waitMs);
+    }
+  }
+
+  async function meltTrustedProofsToVendor(
+    proofs: Proof[],
+    trustedWallet: Wallet,
+  ): Promise<void> {
+    const amount = sumProofs(proofs);
+    const fees = trustedWallet.getFeesForProofs(proofs);
+
+    if (amount - fees < data.expectedPaySats) {
+      status(
+        `Token amount (${amount}) is too small after mint fees (${fees}). Please paste a larger token.`,
+      );
+      return;
+    }
+
+    // Safety: if these proofs were minted by us (QR flow), back them up before melt
+    try {
+      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
+      localStorage.setItem(ls.recovery, rec);
+    } catch {
+      // ignore
+    }
+
+    status('Paying invoice...');
+
+    const w = trustedWallet;
+    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
+    const meltRes = await w.meltProofsBolt11(quote, proofs);
+    toastr.info('Melted proofs to pay invoice.');
+
+    // Spent, so clear recovery
+    try {
+      localStorage.removeItem(ls.recovery);
+    } catch {
+      // ignore
+    }
+
+    const change = getChangeToken(meltRes, w.mint.mintUrl);
+    if (change) {
+      rememberChangeTokens([change]);
+      void confirmOnce([change]);
+    }
+
+    status('Confirming payment...');
+    await confirmUntilPaid(12, 1200);
+  }
+
+  async function handleMintQuotePaid(mq: StoredMintQuote): Promise<void> {
+    if (mintHandled) return;
+    mintHandled = true;
+
+    await exclusive(async () => {
+      status('Payment detected, finalising...');
+      const wallet = await trustedWalletP;
+
+      // Mint proofs now that the quote is PAID
+      const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
+      toastr.info('Minted proofs at trusted mint');
+      deleteJson(ls.mq);
+      mqP = null;
+      await meltTrustedProofsToVendor(mintedProofs, wallet);
+    });
+  }
+
+  async function startMintQuoteWatcher(): Promise<void> {
+    const mq = await ensureMintQuote();
+
+    // Always render QR from stored/current quote
+    renderQr('lightning:' + mq.request);
+
+    $qr.off('click').on('click', () => {
+      copyTextToClipboard(mq.request);
+    });
+
+    // If user refreshes after paying, onceMintPaid might miss (depending on impl),
+    // so do a single state check first.
+    const wallet = await trustedWalletP;
+    const quote = await wallet.checkMintQuoteBolt11(mq.quote);
+    if (quote.state === 'PAID') {
+      void handleMintQuotePaid(mq);
+      return;
+    }
+
+    // Otherwise wait for PAID event
+    try {
+      const timeoutMs = msUntilUnixExpiry(mq.expiry);
+      await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
+      void handleMintQuotePaid(mq);
+    } catch (e: unknown) {
+      toastr.error(getErrorMessage(e));
+      status(getErrorMessage(e));
+      // ignore timeout/abort
+    }
+  }
+
+  async function startMeltPaidWatcher(): Promise<void> {
+    try {
+      const w = await trustedWalletP;
+      const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
+
+      await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
+      status('Payment detected, finalising...');
+      await confirmOnce();
+    } catch {
+      // ignore timeout/abort
+    }
+  }
+
+  async function payFromToken(token: string): Promise<void> {
+    status('Checking token...');
+
+    let meta: TokenMetadata;
+    try {
+      meta = getTokenMetadata(token);
+    } catch (e) {
+      toastr.error(getErrorMessage(e));
+      status('That token does not look valid.');
+      return;
+    }
+
+    const tokenMint = String(meta.mint ?? '').trim();
+    const tokenUnit = String(meta.unit ?? 'sat');
+    if (!tokenMint || meta.amount === 0) {
+      status('Token has no spendable proofs.');
+      return;
+    }
+    if (tokenUnit !== 'sat') {
+      status('This checkout expects sat denominated tokens.');
+      return;
+    }
+
+    status('Connecting to mint...');
+
+    const tokenWallet = await getWalletCached(tokenMint, 'sat');
+    const decoded = tokenWallet.decodeToken(token);
+    let proofs = decoded.proofs;
+
+    if (!Array.isArray(proofs) || proofs.length === 0) {
+      status('Token has no usable proofs.');
+      return;
+    }
+
+    // Trusted mint token, pay vendor directly
+    if (sameMint(tokenMint, data.trustedMint)) {
+      const trustedWallet = await trustedWalletP;
+      await meltTrustedProofsToVendor(proofs, trustedWallet);
+      return;
+    }
+
+    // Untrusted: melt at untrusted mint to pay the trusted mint quote invoice
+    const mq = await ensureMintQuote();
+
+    const amount = sumProofs(proofs);
+    const fees = tokenWallet.getFeesForProofs(proofs);
+
+    status('Calculating your mint’s fees...');
+    const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mq.request);
+
+    const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
+    const meltFees = utMeltQuote.fee_reserve + fees;
+
+    if (amount < required) {
+      status(
+        `Token amount (${amount}) is too small. Please paste a token of at least ${required} sats to cover your mint’s fees (${meltFees}).`,
+      );
+      return;
+    }
+
+    status('Sending payment...');
+    const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
+
+    const change = getChangeToken(utMeltRes, tokenWallet.mint.mintUrl);
+    if (change) {
+      rememberChangeTokens([change]);
+      void confirmOnce([change]);
+    }
+
+    // Important: do NOT sit here waiting while holding the UI lock.
+    // If the mint paid it, our mint-quote watcher will continue automatically.
+    status('Waiting for payment confirmation...');
+  }
+
+  // Wire UI
+  lock(false);
+  status('Preparing payment...');
+
+  $form.off('submit').on('submit', (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) {
+      status('Paste a Cashu token first.');
+      return;
+    }
+    void exclusive(() => payFromToken(token));
+  });
+
+  $input.off('paste').on('paste', () => {
+    window.setTimeout(() => {
+      const token = getToken();
+      void exclusive(() => payFromToken(token));
+    }, 0);
+  });
+
+  // Start async processes (don’t block UI)
+  void startMintQuoteWatcher().catch(() => {
+    status('Could not prepare the invoice, please refresh and try again.');
+  });
+
+  void startMeltPaidWatcher();
+  void confirmOnce(); // catch already-paid orders
+
+  status('Pay using the QR code, or paste a Cashu token.');
+});
+
+/**
+ * Reads order data-* attributes on gateway receipt_page().
+ */
+function readRootData($root: JQuery<HTMLElement>): RootData {
   const orderId = Number($root.data('order-id'));
   const orderKey = String($root.data('order-key') ?? '');
   const returnUrl = String($root.data('return-url') ?? '');
@@ -151,337 +526,28 @@ function readRootData($root: JQuery<HTMLElement>): RootData | null {
     expectedPaySats <= 0 ||
     !quoteId
   ) {
-    return null;
+    throw new Error('bad');
   }
 
-  const ret = {
+  return {
     orderId,
     orderKey,
     returnUrl,
-    trustedMint,
     expectedPaySats,
     quoteId,
     quoteExpiry,
+    trustedMint,
   };
-  // console.log('ret', ret);
-  return ret;
 }
 
-/**
- * Main “paste token -> melt proofs” flow.
- */
-async function startMeltFromToken(
-  token: string,
-  data: RootData,
-  $btn: JQuery<HTMLElement>,
-  $input: JQuery<HTMLElement>,
-): Promise<void> {
-  lockUi($btn, $input, true);
-  setStatus('Checking token...');
-
-  // Validate and get token mint
-  const tokenMint = getTokenMint(token, $btn, $input);
-  if (!tokenMint) {
-    return;
+function msUntilUnixExpiry(expirySec: number | null | undefined): number {
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (typeof expirySec === 'number' && expirySec > nowSec) {
+    return Math.max(10_000, (expirySec - nowSec + 30) * 1000);
   }
-
-  setStatus('Connecting to mint...');
-
-  let tokenWallet: Wallet;
-  let trustedWallet: Wallet;
-  let proofs: Proof[];
-  try {
-    // Instantiate wallet and properly decode token proofs
-    trustedWallet = await getWalletWithUnit(data.trustedMint, 'sat');
-    tokenWallet = await getWalletWithUnit(tokenMint, 'sat');
-    const decoded = tokenWallet.decodeToken(token);
-    proofs = decoded.proofs;
-  } catch (e) {
-    lockUi($btn, $input, false);
-    setStatus('Could not connect to mint.');
-    return;
-  }
-
-  try {
-    let fees = tokenWallet.getFeesForProofs(proofs);
-    let amount = sumProofs(proofs);
-    let change: string[] = [];
-    mintQuote =
-      mintQuote ?? (await trustedWallet.createMintQuoteBolt11(data.expectedPaySats));
-
-    // if proofs are from another mint, create a mint quote at our trusted mint
-    // and melt quote at the untrusted mint to pay for the trusted proofs.
-    if (!sameMint(tokenMint, data.trustedMint)) {
-      setStatus(`Calculating melt fees for ${tokenMint} token...`);
-      const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mintQuote.request);
-      const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
-      const meltFees = utMeltQuote.fee_reserve + fees;
-      if (amount < required) {
-        lockUi($btn, $input, false);
-        setStatus(
-          `Token amount (${amount}) is too small. Please paste a token of at least ${required} to cover your mint's fees: ${meltFees}`,
-        );
-        return;
-      }
-
-      // Execute the melt of untrusted proofs and get trusted ones.
-      setStatus('Melting token...');
-      const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
-      await untilMintQuotePaid(trustedWallet, mintQuote);
-      setStatus('Paying invoice...');
-      proofs = await trustedWallet.mintProofsBolt11(data.expectedPaySats, mintQuote);
-      fees = trustedWallet.getFeesForProofs(proofs);
-      amount = sumProofs(proofs);
-      change.push(getChangeToken(utMeltRes, tokenWallet.mint.mintUrl));
-      $input.val(change[0]);
-    }
-
-    // Check we have enough to pay our trusted mint's melt invoice.
-    if (amount - fees < data.expectedPaySats) {
-      lockUi($btn, $input, false);
-      setStatus(
-        `Token amount (${amount}) is too small after your mint's fees: ${fees}. Please paste a larger token.`,
-      );
-      return;
-    }
-
-    // Melt proofs to pay vendor invoice
-    setStatus('Paying invoice...');
-    const quote = await trustedWallet.checkMeltQuoteBolt11(data.quoteId);
-    const meltRes = await trustedWallet.meltProofsBolt11(quote, proofs);
-
-    // If there is change, hand them back to the user as a new token.
-    change.push(getChangeToken(meltRes, trustedWallet.mint.mintUrl));
-
-    // Now confirm with Woo and redirect if the server agrees it is paid.
-    setStatus('Confirming payment...');
-    await confirmPaidAndMaybeRedirect(data, change.join(', '));
-
-    // If confirm says not paid yet (rare), the melt paid listener should still catch up.
-    setStatus('Waiting for confirmation...');
-  } catch (e: any) {
-    lockUi($btn, $input, false);
-
-    const msg = (e as Error)?.message ? String((e as Error).message) : '';
-    if (msg) {
-      setStatus('Payment failed, ' + msg);
-      return;
-    }
-    setStatus('Payment failed.');
-  }
+  return 15 * 60 * 1000;
 }
 
-/**
- * Validates a token and returns the token mint
- * @param  token  Token
- * @param  $btn   Button element
- * @param  $input Input element
- * @return Token mint url or null
- */
-function getTokenMint(
-  token: string,
-  $btn: JQuery<HTMLElement>,
-  $input: JQuery<HTMLElement>,
-): string | null {
-  lockUi($btn, $input, true);
-  setStatus('Checking token...');
-
-  // Get token metadata
-  let meta: TokenMetadata;
-  try {
-    meta = getTokenMetadata(token);
-  } catch (e) {
-    const message = getErrorMessage(e);
-    console.error(message);
-    toastr.error(message);
-    lockUi($btn, $input, false);
-    setStatus('That token does not look valid.');
-    return null;
-  }
-
-  // Validate metadata
-  const tokenMint = meta.mint;
-  const tokenUnit = meta.unit ?? 'sat';
-  if (!tokenMint || meta.amount === 0) {
-    lockUi($btn, $input, false);
-    setStatus('Token has no spendable proofs.');
-    return null;
-  }
-  if (tokenUnit !== 'sat') {
-    lockUi($btn, $input, false);
-    setStatus('This checkout expects sat denominated tokens.');
-    return null;
-  }
-
-  // Seems ok
-  return tokenMint;
-}
-
-/**
- * Returns a token from melt response change
- * @param  meltResponse The melt response from mint
- * @param  mintUrl      The mint URL
- * @return THe token, or an empty string.
- */
-function getChangeToken(meltResponse: MeltProofsResponse, mintUrl: string): string {
-  const change = Array.isArray(meltResponse?.change) ? meltResponse.change : [];
-  let changeToken = '';
-  if (change.length > 0) {
-    changeToken = getEncodedTokenV4({
-      mint: mintUrl,
-      proofs: change,
-      unit: 'sat',
-    });
-  }
-  return changeToken;
-}
-
-/**
- * Listen for melt quote being marked PAID at the mint.
- * This supports the QR flow where the user pays in their own wallet.
- */
-async function listenForMintPaid(data: RootData, $btn, $input): Promise<void> {
-  try {
-    const wallet = await getWalletWithUnit(data.trustedMint, 'sat');
-    if (!mintQuote) return;
-
-    // Wait for PAID
-    await wallet.on.onceMintPaid(mintQuote.quote, {
-      signal: ac.signal,
-      timeoutMs: Math.max(900_000, mintQuote.expiry),
-    });
-
-    // Once paid, start melt.
-    setStatus('Payment detected, finalising...');
-    const proofs = await wallet.mintProofsBolt11(data.expectedPaySats, mintQuote);
-    const token = getEncodedTokenV4({
-      mint: data.trustedMint,
-      proofs,
-      unit: 'sat',
-    });
-    await startMeltFromToken(token, data, $btn, $input);
-  } catch (e) {
-    // Timeout or abort is fine, user may refresh or re-try.
-    // You could optionally restart the listener if you refresh quotes.
-  }
-}
-
-/**
- * Listen for melt quote being marked PAID at the mint.
- * This supports the QR flow where the user pays in their own wallet.
- */
-async function listenForMeltPaid(data: RootData): Promise<void> {
-  try {
-    const wallet = await getWalletWithUnit(data.trustedMint, 'sat');
-
-    // If quote expiry is known, set timeout a bit past it, otherwise a sensible default.
-    const nowSec = Math.floor(Date.now() / 1000);
-    const msUntil =
-      data.quoteExpiry && data.quoteExpiry > nowSec
-        ? (data.quoteExpiry - nowSec + 30) * 1000
-        : 15 * 60 * 1000;
-
-    // Wait for PAID
-    await wallet.on.onceMeltPaid(data.quoteId, {
-      signal: ac.signal,
-      timeoutMs: msUntil,
-    });
-
-    // Once paid, confirm with Woo, then redirect.
-    setStatus('Payment detected, finalising...');
-    await confirmPaidAndMaybeRedirect(data);
-  } catch (e) {
-    // Timeout or abort is fine, user may refresh or re-try.
-    // You could optionally restart the listener if you refresh quotes.
-  }
-}
-
-// Helper to wait until mint quote is paid
-async function untilMintQuotePaid(wallet: Wallet, quote: MintQuoteBaseResponse) {
-  try {
-    await wallet.on.onceMintPaid(quote.quote, {
-      signal: ac.signal,
-      timeoutMs: 900_000,
-    });
-  } catch {
-    toastr.error(`Mint quote not paid in time or aborted: ${quote.quote}`);
-  }
-}
-
-/**
- * Calls your REST endpoint to confirm the quote has been paid for this order.
- * If paid, redirects to the order return URL (or a redirect_url if your endpoint returns one).
- */
-async function confirmPaidAndMaybeRedirect(
-  data: RootData,
-  changeToken: string = '',
-): Promise<void> {
-  const restRoot = String(window.cashu_wc?.rest_root ?? '');
-  const route = String(window.cashu_wc?.confirm_route ?? '');
-
-  if (!restRoot || !route) {
-    // If localisation is missing, fall back to return URL only when you have another signal.
-    toastr.error('restRoot not set properly!');
-    return;
-  }
-
-  const endpoint = restRoot.replace(/\/?$/, '/') + route.replace(/^\//, '');
-
-  const payload = {
-    order_id: data.orderId,
-    order_key: data.orderKey,
-    quote_id: data.quoteId,
-    change_token: changeToken,
-  };
-
-  let res: Response;
-  try {
-    res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // 'X-WP-Nonce': String(window.cashu_wc?.nonce_confirm ?? ''),
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    return;
-  }
-
-  let json: ConfirmPaidResponse | null = null;
-  try {
-    json = (await res.json()) as ConfirmPaidResponse;
-  } catch {
-    return;
-  }
-
-  if (!json || json.state !== 'PAID') return;
-
-  doConfettiBomb();
-  await delay(2000);
-  const redirectUrl = String(json?.redirect ?? data.returnUrl);
-  if (redirectUrl) {
-    window.location.assign(redirectUrl);
-  }
-}
-
-/**
- * Instantiates a Cashu wallet for a specified mint and unit
- */
-async function getWalletWithUnit(
-  mintUrl: string,
-  unit: CurrencyUnit = 'sat',
-): Promise<Wallet> {
-  const wallet = new Wallet(mintUrl, { unit });
-  await wallet.loadMint();
-  return wallet;
-}
-
-/**
- * Lightweight mint URL comparison.
- * Strips training slashes.
- */
 function sameMint(a: string, b: string): boolean {
   try {
     const ua = new URL(a);
@@ -492,44 +558,4 @@ function sameMint(a: string, b: string): boolean {
   } catch {
     return a.replace(/\/+$/, '') === b.replace(/\/+$/, '');
   }
-}
-
-/**
- * Temporary status UI, replace with whatever you prefer.
- */
-function setStatus(msg: string): void {
-  jQuery('.cashu-foot').text(msg);
-}
-
-function lockUi(
-  $btn: JQuery<HTMLElement>,
-  $input: JQuery<HTMLElement>,
-  locked: boolean,
-): void {
-  $btn.prop('disabled', locked);
-  $input.prop('disabled', locked);
-}
-
-/**
- * Optional, show a refund token if keep/change proofs exist.
- * You can style this properly later, this is just a sketch.
- */
-function showRefundToken(token: string): void {
-  const $existing = jQuery('#cashu-refund-token');
-  if ($existing.length) {
-    $existing.text(token);
-    return;
-  }
-
-  const $el = jQuery(
-    `<div class="cashu-refund">
-				<p class="cashu-refund-title">Leftover Token (Copy This)</p>
-				<textarea id="cashu-refund-token" class="cashu-refund-box" readonly></textarea>
-		 </div>`,
-  );
-
-  $el.find('#cashu-refund-token').text(token);
-
-  // Append beneath the form
-  jQuery('form.cashu-token').after($el);
 }

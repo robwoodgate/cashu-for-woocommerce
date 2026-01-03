@@ -12,7 +12,7 @@ export function copyTextToClipboard(text: string) {
   }
   navigator.clipboard.writeText(text).then(
     function () {
-      toastr.info('copied!');
+      toastr.success('Copied!');
     },
     function (err) {
       console.error('Async: Could not copy text: ', err);
@@ -36,9 +36,10 @@ function fallbackCopyTextToClipboard(text: string) {
   try {
     var successful = document.execCommand('copy');
     if (successful) {
-      toastr.info('copied!');
+      toastr.success('Copied!');
     }
   } catch (err) {
+    toastr.error('Copy failed');
     console.error('Fallback: Oops, unable to copy', err);
   }
 

@@ -381,10 +381,10 @@ class CashuGateway extends \WC_Payment_Gateway {
 			return;
 		}
 
-		// Fallback: Ensure quote is still valid - in case receipt page is refreshed later.
-		// Recreate if it expires within the next 15 minutes (or already expired)
+		// Fallback: Ensure spot quote is still valid - in case page is refreshed.
 		$quote_expiry = absint( $order->get_meta( '_cashu_melt_quote_expiry', true ) );
-		if ( $quote_expiry <= time() + self::QUOTE_EXPIRY_SECS ) {
+		$spot_expiry  = absint( $order->get_meta( '_cashu_spot_time', true ) );
+		if ( $spot_expiry < time() - self::QUOTE_EXPIRY_SECS || $quote_expiry < $spot_expiry ) {
 			$result = $this->setup_cashu_payment( $order );
 			if ( is_wp_error( $result ) ) {
 				Logger::error( 'Could not setup Cashu payment on receipt page: ' . $result->get_error_message() );

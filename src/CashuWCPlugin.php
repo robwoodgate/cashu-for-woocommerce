@@ -71,9 +71,10 @@ final class CashuWCPlugin {
 		// Plugin list action links.
 		add_filter( 'plugin_action_links_' . CASHU_WC_PLUGIN_FILE_PATH, array( $this, 'addPluginActionLinks' ) );
 
-		// Admin notices, only in wp admin.
+		// Admin only items.
 		if ( is_admin() ) {
 			add_action( 'admin_init', array( $this, 'registerAdminNotices' ) );
+			\Cashu\WC\Admin\ValidateGlobalSettings::init();
 		}
 	}
 
@@ -170,7 +171,7 @@ final class CashuWCPlugin {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$dismiss_forever_raw = isset( $_POST['dismiss_forever'] ) ? wp_unslash( $_POST['dismiss_forever'] ) : '0';
-		$dismissForever      = filter_var( $dismiss_forever_raw, FILTER_VALIDATE_BOOL );
+		$dismissForever      = \filter_var( $dismiss_forever_raw, \FILTER_VALIDATE_BOOL );
 
 		if ( $dismissForever ) {
 			update_option( 'cashu_review_dismissed_forever', true );
@@ -295,19 +296,47 @@ final class CashuWCPlugin {
 	}
 
 	public function renderChangeTokenSection( \WC_Order $order ): void {
-		// Only show for our gateway id
 		if ( $order->get_payment_method() !== 'cashu_default' ) {
 			return;
 		}
 
-		$change = (string) $order->get_meta( '_cashu_change' );
-		if ( ! $change ) {
+		// Returns array of \WC_Meta_Data when single = false
+		$items = $order->get_meta( '_cashu_change_tokens', false );
+		if ( empty( $items ) ) {
 			return;
 		}
 
+		// Build a de-duped list as we go. Inclues some simple safeguards, and
+		// uses md5 to ensure uniqueness as more predictable than array_unique
+		$token_set = array();
+		foreach ( (array) $items as $item ) {
+			$value = ( $item instanceof \WC_Meta_Data ) ? $item->value : $item;
+			if ( ! is_scalar( $value ) ) {
+				continue;
+			}
+			$val = trim( (string) $value );
+			if ( $val === '' || strlen( $val ) > 20000 ) {
+				continue;
+			}
+			$token_set[ \md5( $val ) ] = $val;
+		}
+		$tokens = array_values( $token_set );
+
 		echo '<section class="woocommerce-cashu-details">';
 		echo '<h2>' . esc_html__( 'Your Cashu change token', 'cashu-for-woocommerce' ) . '</h2>';
-		echo '<textarea name="cashu_change" id="cashu_change" rows="10" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;">' . esc_textarea( $change ) . '</textarea>';
+
+		if ( count( $tokens ) === 1 ) {
+			echo '<textarea rows="10" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;">' . esc_textarea( $tokens[0] ) . '</textarea>';
+		} else {
+			echo '<p>' . esc_html__( 'Keep each token below. They may represent separate pieces of change.', 'cashu-for-woocommerce' ) . '</p>';
+
+			foreach ( $tokens as $i => $t ) {
+				$label = sprintf( __( 'Change Token %d', 'cashu-for-woocommerce' ), $i + 1 );
+				echo '<p><strong>' . esc_html( $label ) . '</strong></p>';
+				echo '<textarea rows="6" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;margin-bottom:1rem;">' . esc_textarea( $t ) . '</textarea>';
+			}
+		}
+
 		echo '</section>';
 	}
 
@@ -334,15 +363,10 @@ final class CashuWCPlugin {
 
 		$docs_link = sprintf(
 			'<a href="%s" target="_blank" rel="noopener noreferrer">Docs</a>',
-			esc_url( 'https://dev.cashu.sv/examples/woocommerce-plugin/' )
+			esc_url( 'https://cashu.space' )
 		);
 
-		$support_link = sprintf(
-			'<a href="%s" target="_blank" rel="noopener noreferrer">Support</a>',
-			esc_url( 'https://www.cashu.sv/en/support' )
-		);
-
-		$prepend = array_filter( array( $settings_link, $logs_link, $docs_link, $support_link ) );
+		$prepend = array_filter( array( $settings_link, $logs_link, $docs_link ) );
 		return array_merge( $prepend, $links );
 	}
 }
