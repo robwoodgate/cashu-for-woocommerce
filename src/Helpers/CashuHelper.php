@@ -43,7 +43,7 @@ class CashuHelper {
 	 *   btc_price: float,
 	 *   sats: int,
 	 *   source: string,
-	 *   quoted_at: string
+	 *   quoted_at: int
 	 * }
 	 *
 	 * @throws \RuntimeException when both API calls fail or return bad data
@@ -51,8 +51,7 @@ class CashuHelper {
 	public static function fiatToSats( float $amount, string $fiat = 'USD' ): array {
 		$fiat_upper = strtoupper( trim( $fiat ) );
 		$fiat_lower = strtolower( $fiat_upper );
-
-		$quoted_at = gmdate( 'c' ); // ISO 8601, UTC
+		$quoted_at  = time();
 
 		if ( $amount <= 0 ) {
 			return array(

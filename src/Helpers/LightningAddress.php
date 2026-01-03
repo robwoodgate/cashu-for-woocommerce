@@ -22,9 +22,9 @@ class LightningAddress {
 
 		// If it already looks like a BOLT11, just return it.
 		if (
-		0 === stripos( $address, 'lnbc' ) ||
-		0 === stripos( $address, 'lntb' ) ||
-		0 === stripos( $address, 'lnbcrt' )
+		0 === stripos( $address, 'lnbc' ) || // mainnet
+		0 === stripos( $address, 'lntb' ) || // testnet
+		0 === stripos( $address, 'lnbcrt' )  // regtest (local)
 		) {
 			return $address;
 		}
@@ -35,7 +35,11 @@ class LightningAddress {
 
 		[$name, $host] = explode( '@', $address, 2 );
 
-		$lnurlp_url = sprintf( 'https://%s/.well-known/lnurlp/%s', $host, rawurlencode( $name ) );
+		$lnurlp_url = sprintf(
+			'https://%s/.well-known/lnurlp/%s',
+			$host,
+			rawurlencode( $name )
+		);
 
 		$meta_response = wp_remote_get(
 			$lnurlp_url,

@@ -279,7 +279,7 @@ final class CashuWCPlugin {
 			return $totals;
 		}
 
-		$sats = (int) $order->get_meta( '_cashu_expected_amount' );
+		$sats = (int) $order->get_meta( '_cashu_melt_total' );
 		if ( $sats <= 0 ) {
 			return $totals;
 		}

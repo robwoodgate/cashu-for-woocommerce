@@ -37,22 +37,14 @@ final class ConfirmMeltQuoteController {
 
 	public function permission_callback( WP_REST_Request $request ): bool {
 		// Check WooCommerce is loaded.
-		if ( ! function_exists( 'wc_get_order' ) || ! function_exists( 'wc_get_order_id_by_order_key' ) ) {
+		if ( ! function_exists( 'wc_get_order' ) ) {
 			return false;
 		}
 
-		// Check we got an order key.
+		// Check we got an order ID & Key
+		$order_id  = (int) $request->get_param( 'order_id' );
 		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
-		if ( '' === $order_key ) {
-			return false;
-		}
-
-		// Check we got an order ID.
-		$order_id = (int) $request->get_param( 'order_id' );
-		if ( $order_id <= 0 ) {
-			$order_id = (int) wc_get_order_id_by_order_key( $order_key );
-		}
-		if ( $order_id <= 0 ) {
+		if ( '' === $order_key || $order_id <= 0 ) {
 			return false;
 		}
 
@@ -62,23 +54,12 @@ final class ConfirmMeltQuoteController {
 			return false;
 		}
 
-		$current_user = (int) get_current_user_id();
-		$order_user   = (int) $order->get_customer_id();
-		if ( $current_user > 0 && $order_user > 0 && $current_user !== $order_user ) {
-			return false;
-		}
-
 		// Check order key is valid for order.
 		return $order->key_is_valid( $order_key );
 	}
 
 	public function confirm_melt_quote( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$order_key = sanitize_text_field( (string) $request->get_param( 'order_key' ) );
-
 		$order_id = (int) $request->get_param( 'order_id' );
-		if ( $order_id <= 0 ) {
-			$order_id = (int) wc_get_order_id_by_order_key( $order_key );
-		}
 		if ( $order_id <= 0 ) {
 			return new WP_Error( 'cashu_no_order', 'Order not found.', array( 'status' => 404 ) );
 		}

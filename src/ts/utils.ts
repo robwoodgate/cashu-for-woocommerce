@@ -1,4 +1,3 @@
-import { getDecodedToken, getEncodedTokenV4, Wallet } from '@cashu/cashu-ts';
 import confetti from 'canvas-confetti';
 import toastr from 'toastr';
 
