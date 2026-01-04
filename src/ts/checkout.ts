@@ -58,6 +58,12 @@ const ac = new AbortController();
 window.addEventListener('pagehide', () => ac.abort(), { once: true });
 window.addEventListener('beforeunload', () => ac.abort(), { once: true });
 
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('unhandledrejection', e.reason);
+  // @ts-ignore
+  if (typeof toastr !== 'undefined') toastr.error(String(e.reason?.message ?? e.reason));
+});
+
 // Cache wallets by mintUrl|unit
 const walletCache = new Map<string, Promise<Wallet>>();
 
@@ -118,27 +124,47 @@ jQuery(function ($) {
 
   const trustedWalletP = getWalletCached(data.trustedMint, 'sat');
 
-  let busy = false;
   let mintHandled = false; // prevent double-mint/double-melt from the same quote
   let mqP: Promise<StoredMintQuote> | null = null;
+  let pending = 0;
+  let chain: Promise<any> = Promise.resolve();
 
-  // Simple locking function
-  async function exclusive<T>(fn: () => Promise<T>): Promise<T | undefined> {
-    if (busy) {
+  // Runs work serially. User actions are rejected if something is already running.
+  // System events always queue behind whatever is in flight.
+  function run<T>(
+    fn: () => Promise<T>,
+    opts: { user?: boolean } = {},
+  ): Promise<T | undefined> {
+    const isUser = !!opts.user;
+
+    if (isUser && pending > 0) {
       toastr.error('Payment already in progress');
       return Promise.resolve(undefined);
     }
-    busy = true;
-    lock(true);
-    try {
-      return await fn();
-    } catch (e) {
-      toastr.error(getErrorMessage(e));
-      status(getErrorMessage(e));
-    } finally {
-      busy = false;
-      lock(false);
-    }
+
+    pending++;
+    if (pending === 1) lock(true);
+
+    const p = chain
+      .then(fn)
+      .catch((e) => {
+        const msg = getErrorMessage(e);
+        status(msg);
+        if (isUser) toastr.error(msg);
+        return undefined as unknown as T;
+      })
+      .finally(() => {
+        pending--;
+        if (pending === 0) lock(false);
+      });
+
+    // Keep the chain alive even if p failed
+    chain = p.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return p;
   }
 
   function loadJson<T>(key: string): T | null {
@@ -341,17 +367,15 @@ jQuery(function ($) {
     if (mintHandled) return;
     mintHandled = true;
 
-    await exclusive(async () => {
-      status('Payment detected, finalising...');
-      const wallet = await trustedWalletP;
+    status('Payment detected, finalising...');
+    const wallet = await trustedWalletP;
 
-      // Mint proofs now that the quote is PAID
-      const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
-      toastr.info('Minted proofs at trusted mint');
-      deleteJson(ls.mq);
-      mqP = null;
-      await meltTrustedProofsToVendor(mintedProofs, wallet);
-    });
+    const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
+    toastr.info('Minted proofs at trusted mint');
+    deleteJson(ls.mq);
+    mqP = null;
+
+    await meltTrustedProofsToVendor(mintedProofs, wallet);
   }
 
   async function startMintQuoteWatcher(): Promise<void> {
@@ -369,15 +393,16 @@ jQuery(function ($) {
     const wallet = await trustedWalletP;
     const quote = await wallet.checkMintQuoteBolt11(mq.quote);
     if (quote.state === 'PAID') {
-      void handleMintQuotePaid(mq);
+      void run(() => handleMintQuotePaid(mq));
       return;
     }
 
     // Otherwise wait for PAID event
     try {
       const timeoutMs = msUntilUnixExpiry(mq.expiry);
+      toastr.info('timeout secs: ' + timeoutMs / 1000);
       await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
-      void handleMintQuotePaid(mq);
+      void run(() => handleMintQuotePaid(mq));
     } catch (e: unknown) {
       toastr.error(getErrorMessage(e));
       status(getErrorMessage(e));
@@ -483,13 +508,13 @@ jQuery(function ($) {
       status('Paste a Cashu token first.');
       return;
     }
-    void exclusive(() => payFromToken(token));
+    void run(() => payFromToken(token), { user: true });
   });
 
   $input.off('paste').on('paste', () => {
     window.setTimeout(() => {
       const token = getToken();
-      void exclusive(() => payFromToken(token));
+      void run(() => payFromToken(token), { user: true });
     }, 0);
   });
 

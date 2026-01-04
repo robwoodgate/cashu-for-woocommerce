@@ -165,12 +165,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 			// No payment needed
 			$order->payment_complete();
 		} else {
-			$result = $this->setup_cashu_payment( $order );
-
-			if ( is_wp_error( $result ) ) {
-				Logger::error( 'Cashu setup failed: ' . $result->get_error_message() );
+			try {
+				$this->setup_cashu_payment( $order );
+			} catch ( \Error $e ) {
+				Logger::error( 'Could not setup Cashu payment: ' . $e->getMessage() );
 				wc_add_notice( __( 'Cashu payment setup failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
-				return array( 'result' => 'failure' );
 			}
 		}
 
@@ -186,10 +185,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 	 * Setup cashu checkout and redirect to payment form
 	 *
 	 * @param WC_Order $order Order.
-	 *
-	 * @return true|\WP_Error
 	 */
-	private function setup_cashu_payment( WC_Order $order ) {
+	private function setup_cashu_payment( WC_Order $order ): void {
 		/**
 		 * Filter the order status for cashu payment (Default: 'pending').
 		 *
@@ -212,22 +209,17 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		// Determine invoice amount in sats (merchant receives this).
 		$order_total_sats = $this->get_total_sats( $order );
-		if ( is_wp_error( $order_total_sats ) ) {
-			return $order_total_sats;
-		}
 
 		// Create or reuse melt quote, store fee reserve, set headline expected amount.
 		$this->ensure_melt_quote_for_order( $order, $order_total_sats );
 
 		$order->save();
-
-		return true;
 	}
 
 	/**
 	 * Determine the invoice amount in sats, reusing any existing value.
 	 */
-	private function get_total_sats( WC_Order $order ): int|\WP_Error {
+	private function get_total_sats( WC_Order $order ): int {
 		// Return existing sats amount if quote is still valid
 		$order_total_sats = absint( $order->get_meta( '_cashu_spot_total', true ) );
 		$quoted_at        = absint( $order->get_meta( '_cashu_spot_time', true ) );
@@ -242,7 +234,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order_total_sats = absint( $quote['sats'] ?? 0 );
 		if ( $order_total_sats <= 0 ) {
 			Logger::error( 'Cashu quote failed, sats amount is invalid.' );
-			return new \WP_Error( 'cashu_quote_failed', 'Cashu quote failed.' );
+			throw new \RuntimeException( 'Could not get price quote in bitcoin.' );
 		}
 
 		// Set order meta
@@ -385,11 +377,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$quote_expiry = absint( $order->get_meta( '_cashu_melt_quote_expiry', true ) );
 		$spot_expiry  = absint( $order->get_meta( '_cashu_spot_time', true ) );
 		if ( $spot_expiry < time() - self::QUOTE_EXPIRY_SECS || $quote_expiry < $spot_expiry ) {
-			$result = $this->setup_cashu_payment( $order );
-			if ( is_wp_error( $result ) ) {
-				Logger::error( 'Could not setup Cashu payment on receipt page: ' . $result->get_error_message() );
+			try {
+				$this->setup_cashu_payment( $order );
+			} catch ( \Error $e ) {
+				Logger::error( 'Could not setup Cashu payment on receipt page: ' . $e->getMessage() );
 				wc_add_notice( __( 'Cashu payment setup failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
-				return;
 			}
 		}
 
