@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2026-01-04 16:31:48+00:00\n"
+"POT-Creation-Date: 2026-01-05 00:28:11+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -136,7 +136,7 @@ msgstr ""
 msgid "Enable Cashu Gateway"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:172 src/Gateway/CashuGateway.php:384
+#: src/Gateway/CashuGateway.php:172 src/Gateway/CashuGateway.php:475
 msgid "Cashu payment setup failed, please try again."
 msgstr ""
 
@@ -146,37 +146,37 @@ msgstr ""
 msgid "Cashu quote: %1$s%2$s (BTC/%3$s: %4$s) from %5$s"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:317
+#: src/Gateway/CashuGateway.php:320
 #. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
 #. required sats
 msgid ""
 "Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, "
-"total: %3$s sats"
+"ppk_fee: %3$s sats, total: %4$s sats"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:367
+#: src/Gateway/CashuGateway.php:458
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:409
+#: src/Gateway/CashuGateway.php:502
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:411 src/Gateway/CashuGateway.php:440
+#: src/Gateway/CashuGateway.php:504 src/Gateway/CashuGateway.php:541
 msgid "Pay"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:428
+#: src/Gateway/CashuGateway.php:512 src/Gateway/CashuGateway.php:548
+#. translators: %1$s: Mint hostname
+msgid "Fees will be lower if you use %1$s"
+msgstr ""
+
+#: src/Gateway/CashuGateway.php:529
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:436
+#: src/Gateway/CashuGateway.php:537
 msgid "Enter your cashu token…"
-msgstr ""
-
-#: src/Gateway/CashuGateway.php:447
-#. translators: %1$s: Mint hostname
-msgid "Fees will be lower if you use %1$s"
 msgstr ""
 
 #. Plugin Name of the plugin/theme

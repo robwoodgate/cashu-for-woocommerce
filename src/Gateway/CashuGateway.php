@@ -309,15 +309,19 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->update_meta_data( '_cashu_melt_mint', $this->trusted_mint );
 
 		// Headline amount the customer must cover.
-		$order->update_meta_data( '_cashu_melt_total', $amount + $fee_reserve );
+		$ppk_fee = $this->estimate_input_fee_sats( $amount + $fee_reserve );
+		$total   = $amount + $fee_reserve + $ppk_fee;
+		$order->update_meta_data( '_cashu_melt_total', $total );
+		$order->update_meta_data( '_cashu_melt_fees', $fee_reserve + $ppk_fee );
 
 		$order->add_order_note(
 			sprintf(
 				/* translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total required sats */
-				__( 'Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, total: %3$s sats', 'cashu-for-woocommerce' ),
+				__( 'Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, ppk_fee: %3$s sats, total: %4$s sats', 'cashu-for-woocommerce' ),
 				(string) $amount,
 				(string) $fee_reserve,
-				(string) ( $amount + $fee_reserve )
+				(string) $ppk_fee,
+				(string) $total
 			)
 		);
 	}
@@ -361,6 +365,93 @@ class CashuGateway extends \WC_Payment_Gateway {
 		return $json;
 	}
 
+	/**
+	 * Get the maximum input_fee_ppk for active "sat" unit keysets from the trusted mint.
+	 * Result is cached per mint URL for 24 hours.
+	 */
+	private function get_max_input_fee_ppk(): int {
+		// Return cached if available
+		$transient_key = 'cashu_max_sat_input_fee_ppk_' . md5( $this->trusted_mint );
+		$cached        = get_transient( $transient_key );
+		if ( false !== $cached && is_numeric( $cached ) ) {
+			return (int) $cached;
+		}
+
+		// Setup and make request
+		$endpoint = $this->trusted_mint . '/v1/keysets';
+		$res      = wp_remote_get(
+			$endpoint,
+			array(
+				'timeout' => 15,
+				'headers' => array(
+					'Accept'       => 'application/json',
+					'Content-Type' => 'application/json',
+				),
+			)
+		);
+		if ( is_wp_error( $res ) ) {
+			throw new \RuntimeException( 'Mint keysets request failed: ' . sanitize_text_field( $res->get_error_message() ) );
+		}
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		if ( $code < 200 || $code >= 300 ) {
+			throw new \RuntimeException( 'Mint keysets request failed, HTTP ' . $code );
+		}
+		$body = wp_remote_retrieve_body( $res );
+		$json = json_decode( $body, true );
+		if ( ! is_array( $json ) || ! isset( $json['keysets'] ) || ! is_array( $json['keysets'] ) ) {
+			throw new \RuntimeException( 'Invalid mint keysets response.' );
+		}
+
+		// Filter active sat keysets
+		$fees = array_column(
+			array_filter(
+				$json['keysets'],
+				fn( $ks ) => is_array( $ks )
+					&& ( $ks['unit'] ?? '' ) === 'sat'
+					&& ! empty( $ks['active'] )
+					&& isset( $ks['input_fee_ppk'] )
+					&& is_numeric( $ks['input_fee_ppk'] )
+			),
+			'input_fee_ppk'
+		);
+		if ( empty( $fees ) ) {
+			throw new \RuntimeException( 'No active sat keysets with input_fee_ppk found.' );
+		}
+
+		// Cache and return
+		$max_fee = (int) max( $fees );
+		set_transient( $transient_key, $max_fee, DAY_IN_SECONDS );
+		return $max_fee;
+	}
+
+	private function proof_count_optimal_split( int $amount ): int {
+		if ( $amount <= 0 ) {
+			return 1;
+		}
+		$count = 0;
+		while ( $amount ) {
+			++$count;
+			$amount &= ( $amount - 1 ); // clears the lowest set bit
+		}
+		return $count ?: 1;
+	}
+
+	/**
+	 * Estimate input fee reserve in sats for paying a given amount using an
+	 * optimal split, but using the maximum input_fee_ppk across active sat keysets.
+	 *
+	 * It is an estimate, which should be fine for newly minted tokens (eg via QR)
+	 * but will be too low for badly split tokens (eg all 1 sat proofs).
+	 */
+	private function estimate_input_fee_sats( int $amount_sats ): int {
+		$ppk    = $this->get_max_input_fee_ppk();
+		$proofs = $this->proof_count_optimal_split( $amount_sats );
+
+		$sum_fees_msat = $proofs * $ppk;
+		return intdiv( $sum_fees_msat + 999, 1000 );
+	}
+
+
 	public function receipt_page( $order_id ) {
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
@@ -386,6 +477,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		}
 
 		$pay_amount_sats = absint( $order->get_meta( '_cashu_melt_total', true ) );
+		$pay_fees_sats   = absint( $order->get_meta( '_cashu_melt_fees', true ) );
 		$quote_id        = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$trusted_mint    = (string) $order->get_meta( '_cashu_melt_mint', true );
 		$mint_host       = preg_replace( '/^www\./i', '', (string) wp_parse_url( $trusted_mint, PHP_URL_HOST ) );
@@ -400,6 +492,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			data-order-key="' . esc_attr( $order->get_order_key() ) . '"
 			data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"
 			data-pay-amount-sats="' . esc_attr( $pay_amount_sats ) . '"
+			data-pay-fees-sats="' . esc_attr( $pay_fees_sats ) . '"
 			data-melt-quote-id="' . esc_attr( $quote_id ) . '"
 			data-melt-quote-expiry="' . esc_attr( $quote_expiry ) . '"
 			data-trusted-mint="' . esc_attr( $trusted_mint ) . '"
@@ -412,7 +505,15 @@ class CashuGateway extends \WC_Payment_Gateway {
 				<h2 class="cashu-amount">
 					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?>
 				</h2>
-				<div class="cashu-paywith"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></div>
+				<div class="cashu-paywith">
+				<?php
+					printf(
+						/* translators: %1$s: Mint hostname */
+						esc_html__( 'Fees will be lower if you use %1$s', 'cashu-for-woocommerce' ),
+						'<strong>' . esc_html( $mint_host ) . '</strong>'
+					);
+				?>
+				</div>
 			</div>
 			<div class="cashu-box">
 				<div class="cashu-qr-wrap">

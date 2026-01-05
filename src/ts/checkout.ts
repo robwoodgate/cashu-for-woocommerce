@@ -300,7 +300,10 @@ jQuery(function ($) {
       }
 
       if (json?.state === 'EXPIRED') {
-        status('This payment quote has expired, please refresh the page.');
+        status('This payment quote has expired.');
+        toastr.error('This payment quote has expired.');
+        await delay(2000);
+        window.location.assign(String(data.returnUrl)); // order received page
       }
 
       return json ?? null;
@@ -311,9 +314,10 @@ jQuery(function ($) {
 
   async function confirmUntilPaid(attempts: number, waitMs: number): Promise<void> {
     for (let i = 0; i < attempts; i++) {
+      await delay(waitMs);
+      toastr.info('Confirming melt - poll #' + i);
       const r = await confirmOnce();
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
-      await delay(waitMs);
     }
   }
 
@@ -324,14 +328,8 @@ jQuery(function ($) {
     const amount = sumProofs(proofs);
     const fees = trustedWallet.getFeesForProofs(proofs);
 
-    if (amount - fees < data.expectedPaySats) {
-      status(
-        `Token amount (${amount}) is too small after mint fees (${fees}). Please paste a larger token.`,
-      );
-      return;
-    }
-
-    // Safety: if these proofs were minted by us (QR flow), back them up before melt
+    // Safety: backup proofs before melt as they may have been minted by us
+    // in the QR Code or untrusted mint payment flows
     try {
       const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
       localStorage.setItem(ls.recovery, rec);
@@ -356,11 +354,12 @@ jQuery(function ($) {
     const change = getChangeToken(meltRes, w.mint.mintUrl);
     if (change) {
       rememberChangeTokens([change]);
-      void confirmOnce([change]);
+      toastr.info('Confirming melt + saving change!');
+      void run(() => confirmOnce([change]));
     }
 
     status('Confirming payment...');
-    await confirmUntilPaid(12, 1200);
+    void run(() => confirmUntilPaid(12, 1200));
   }
 
   async function handleMintQuotePaid(mq: StoredMintQuote): Promise<void> {
@@ -393,6 +392,7 @@ jQuery(function ($) {
     const wallet = await trustedWalletP;
     const quote = await wallet.checkMintQuoteBolt11(mq.quote);
     if (quote.state === 'PAID') {
+      toastr.info('Mint quote watcher - paid already!');
       void run(() => handleMintQuotePaid(mq));
       return;
     }
@@ -402,6 +402,7 @@ jQuery(function ($) {
       const timeoutMs = msUntilUnixExpiry(mq.expiry);
       toastr.info('timeout secs: ' + timeoutMs / 1000);
       await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
+      toastr.info('Mint quote watcher - paid event!');
       void run(() => handleMintQuotePaid(mq));
     } catch (e: unknown) {
       toastr.error(getErrorMessage(e));
@@ -417,7 +418,7 @@ jQuery(function ($) {
 
       await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
       status('Payment detected, finalising...');
-      await confirmOnce();
+      void run(() => confirmOnce());
     } catch {
       // ignore timeout/abort
     }
@@ -489,7 +490,7 @@ jQuery(function ($) {
     const change = getChangeToken(utMeltRes, tokenWallet.mint.mintUrl);
     if (change) {
       rememberChangeTokens([change]);
-      void confirmOnce([change]);
+      void run(() => confirmOnce([change]));
     }
 
     // Important: do NOT sit here waiting while holding the UI lock.
@@ -524,9 +525,7 @@ jQuery(function ($) {
   });
 
   void startMeltPaidWatcher();
-  void confirmOnce(); // catch already-paid orders
-
-  status('Pay using the QR code, or paste a Cashu token.');
+  void run(() => confirmOnce());
 });
 
 /**
