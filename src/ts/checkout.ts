@@ -8,6 +8,7 @@ import {
   MeltQuoteState,
   MintQuoteBolt11Response,
   TokenMetadata,
+  MeltQuoteBolt11Response,
 } from '@cashu/cashu-ts';
 import { copyTextToClipboard, doConfettiBomb, delay, getErrorMessage } from './utils';
 import toastr from 'toastr';
@@ -239,16 +240,20 @@ jQuery(function ($) {
   };
 
   // Start async processes (don’t block UI)
-  void renderQr().catch(() => {
+  void startAsyncProcesses().catch(() => {
     setStatus('Could not prepare the invoice, please refresh and try again.');
   });
-  void startMintQuoteWatcher();
-  void startMeltPaidWatcher();
-  void run(() => checkOrderStatus());
 
   // ------------------------------
   // Checkout Helpers
   // ------------------------------
+
+  async function startAsyncProcesses(): Promise<void> {
+    void renderQr();
+    void startMintQuoteWatcher();
+    void startMeltPaidWatcher();
+    void run(() => checkOrderStatus());
+  }
 
   async function renderQr(): Promise<void> {
     const mq = await ensureMintQuote();
@@ -525,31 +530,20 @@ jQuery(function ($) {
   // ------------------------------
 
   async function startMeltPaidWatcher(): Promise<void> {
-    try {
-      const w = await trustedWalletP;
-      const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
-      await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
-      setStatus('Payment detected, finalising...');
-      void run(() => checkOrderStatus());
-    } catch {
-      // ignore timeout/abort
-    }
-  }
-
-  async function startMeltPaidWatcher(): Promise<void> {
     const wallet = await trustedWalletP;
-    const deadline = Date.now() + msUntilUnixExpiry(mq.expiry);
 
     // Websocket is the primary watcher
     const ws = async () => {
-      const timeoutMs = Math.max(10_000, deadline - Date.now());
-      await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
+      const timeoutMs = Math.max(10_000, data.quoteExpiry - Date.now());
+      await wallet.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
     };
 
     // Fallback: poll every 3s until paid or time runs out
     const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < deadline) {
-        const q = await wallet.checkMintQuoteBolt11(mq.quote);
+      while (!ac.signal.aborted && Date.now() < data.quoteExpiry) {
+        const q: MeltQuoteBolt11Response = await wallet.checkMeltQuoteBolt11(
+          data.quoteId,
+        );
         if (q.state === 'PAID') return; // promise: success
         await delay(3000);
       }
@@ -567,7 +561,8 @@ jQuery(function ($) {
     }
 
     // success!
-    void run(() => handleMintQuotePaid(mq));
+    setStatus('Payment detected, finalising...');
+    void run(() => checkOrderStatus());
   }
 
   async function meltTrustedProofsToVendor(
