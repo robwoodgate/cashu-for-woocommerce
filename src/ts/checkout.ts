@@ -12,6 +12,10 @@ import {
 import { copyTextToClipboard, doConfettiBomb, delay, getErrorMessage } from './utils';
 import toastr from 'toastr';
 
+// ------------------------------
+// Types
+// ------------------------------
+
 type CashuWindow = Window & {
   cashu_wc?: {
     rest_root?: string;
@@ -50,6 +54,10 @@ type StoredMintQuote = {
   expiry?: number | null;
 };
 
+// ------------------------------
+// Helpers
+// ------------------------------
+
 // Set toastr options
 toastr.options = { positionClass: 'toast-bottom-center' };
 
@@ -57,12 +65,6 @@ toastr.options = { positionClass: 'toast-bottom-center' };
 const ac = new AbortController();
 window.addEventListener('pagehide', () => ac.abort(), { once: true });
 window.addEventListener('beforeunload', () => ac.abort(), { once: true });
-
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('unhandledrejection', e.reason);
-  // @ts-ignore
-  if (typeof toastr !== 'undefined') toastr.error(String(e.reason?.message ?? e.reason));
-});
 
 // Cache wallets by mintUrl|unit
 const walletCache = new Map<string, Promise<Wallet>>();
@@ -84,8 +86,95 @@ function getWalletCached(mintUrl: string, unit: CurrencyUnit = 'sat'): Promise<W
 }
 
 /**
- * Bootstrap checkout
+ * Read order data-* attributes on gateway receipt_page().
  */
+function readRootData($root: JQuery<HTMLElement>): RootData {
+  const orderId = Number($root.data('order-id'));
+  const orderKey = String($root.data('order-key') ?? '');
+  const returnUrl = String($root.data('return-url') ?? '');
+  const expectedPaySats = Number($root.data('pay-amount-sats') ?? 0);
+  const quoteId = String($root.data('melt-quote-id') ?? '');
+  const quoteExpiry = Number($root.data('melt-quote-expiry') ?? 0);
+  const trustedMint = String($root.data('trusted-mint') ?? '');
+
+  if (
+    !Number.isFinite(orderId) ||
+    orderId <= 0 ||
+    !orderKey ||
+    !returnUrl ||
+    !trustedMint ||
+    !Number.isFinite(expectedPaySats) ||
+    expectedPaySats <= 0 ||
+    !quoteId
+  ) {
+    throw new Error('Bad order data');
+  }
+
+  return {
+    orderId,
+    orderKey,
+    returnUrl,
+    expectedPaySats,
+    quoteId,
+    quoteExpiry,
+    trustedMint,
+  };
+}
+
+function msUntilUnixExpiry(expirySec: number | null | undefined): number {
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (typeof expirySec === 'number' && expirySec > nowSec) {
+    return Math.max(10_000, (expirySec - nowSec + 30) * 1000);
+  }
+  return 15 * 60 * 1000;
+}
+
+function sameMint(a: string, b: string): boolean {
+  try {
+    const ua = new URL(a);
+    const ub = new URL(b);
+    const normA = ua.origin + ua.pathname.replace(/\/+$/, '');
+    const normB = ub.origin + ub.pathname.replace(/\/+$/, '');
+    return normA === normB;
+  } catch {
+    return a.replace(/\/+$/, '') === b.replace(/\/+$/, '');
+  }
+}
+
+// ------------------------------
+// LocalStorage helpers
+// ------------------------------
+
+function loadJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function saveJson(key: string, val: any): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // ignore
+  }
+}
+
+function deleteJson(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+// ------------------------------
+// Bootstrap checkout
+// ------------------------------
+
 jQuery(function ($) {
   // Init UI
   const $root = $('#cashu-pay-root');
@@ -97,6 +186,21 @@ jQuery(function ($) {
   const $btn = $form.find('button[type="submit"]');
   const $status = $scope.find('.cashu-status');
   const $qr = $scope.find('[data-cashu-qr]');
+  const setStatus = (msg: string) => $status.text(msg);
+  const lock = (locked: boolean) => {
+    $btn.prop('disabled', locked);
+    $input.prop('disabled', locked);
+  };
+  lock(false);
+  $form.off('submit').on('submit', (e) => {
+    e.preventDefault();
+    const token = getToken();
+    if (!token) {
+      setStatus('Paste a Cashu token first.');
+      return;
+    }
+    void run(() => payFromToken(token), { user: true });
+  });
 
   // Load checkout data
   let data: RootData;
@@ -107,12 +211,12 @@ jQuery(function ($) {
     return;
   }
 
-  // Helpers
-  const status = (msg: string) => $status.text(msg);
-  const lock = (locked: boolean) => {
-    $btn.prop('disabled', locked);
-    $input.prop('disabled', locked);
-  };
+  // Init vars
+  let mqP: Promise<StoredMintQuote> | null = null;
+  let chain: Promise<any> = Promise.resolve();
+  let mintHandleP: Promise<void> | null = null;
+  let userPending = 0;
+  const trustedWalletP = getWalletCached(data.trustedMint, 'sat');
   const getToken = () => String($input.val() ?? '').trim();
   const ls = {
     mq: `cashu_wc_mq_${data.orderId}`,
@@ -120,15 +224,18 @@ jQuery(function ($) {
     recovery: `cashu_wc_recovery_${data.orderId}`, // keep as invisible safety
   };
 
-  // Init vars
-  const trustedWalletP = getWalletCached(data.trustedMint, 'sat');
-  let mintHandled = false;
-  let mqP: Promise<StoredMintQuote> | null = null;
-  let pending = 0;
-  let chain: Promise<any> = Promise.resolve();
-  let userPending = 0;
+  // Start async processes (don’t block UI)
+  void startMintQuoteWatcher().catch(() => {
+    setStatus('Could not prepare the invoice, please refresh and try again.');
+  });
+  void startMeltPaidWatcher();
+  void run(() => checkOrderStatus());
 
-  function run<T>(
+  // ------------------------------
+  // Checkout Helpers
+  // ------------------------------
+
+  async function run<T>(
     fn: () => Promise<T>,
     opts: { user?: boolean } = {},
   ): Promise<T | undefined> {
@@ -146,7 +253,7 @@ jQuery(function ($) {
 
     const p = chain.then(fn).catch((e) => {
       const msg = getErrorMessage(e);
-      status(msg);
+      setStatus(msg);
       if (isUser) toastr.error(msg);
       return undefined as unknown as T;
     });
@@ -154,37 +261,13 @@ jQuery(function ($) {
     // keep the chain alive regardless
     chain = p.then(() => undefined);
 
-    return p.finally(() => {
+    try {
+      return await p;
+    } finally {
       if (isUser) {
         userPending--;
         if (userPending === 0) lock(false);
       }
-    });
-  }
-
-  function loadJson<T>(key: string): T | null {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      return JSON.parse(raw) as T;
-    } catch {
-      return null;
-    }
-  }
-
-  function saveJson(key: string, val: any): void {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-    } catch {
-      // ignore
-    }
-  }
-
-  function deleteJson(key: string): void {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // ignore
     }
   }
 
@@ -197,6 +280,7 @@ jQuery(function ($) {
     saveJson(ls.change, merged);
   }
 
+  // TODO: This probably should be hooked at the point of receiving proofs BEFORE it becomes a token.
   async function classifyChangeToken(
     token: string,
   ): Promise<'spendable' | 'dust' | 'unknown'> {
@@ -234,17 +318,85 @@ jQuery(function ($) {
     });
   }
 
-  function storedMintQuoteLooksUsable(mq: StoredMintQuote | null): mq is StoredMintQuote {
-    if (!mq) return false;
-    if (!mq.quote || !mq.request || !mq.mint) return false;
-    if (mq.amount !== data.expectedPaySats) return false;
-    if (!sameMint(mq.mint, data.trustedMint)) return false;
+  // ------------------------------
+  // Pay By Token
+  // ------------------------------
 
-    const exp = typeof mq.expiry === 'number' ? mq.expiry : 0;
-    const now = Math.floor(Date.now() / 1000);
-    if (exp > 0 && exp <= now) return false;
-    return true;
+  async function payFromToken(token: string): Promise<void> {
+    setStatus('Checking token...');
+
+    let meta: TokenMetadata;
+    try {
+      meta = getTokenMetadata(token);
+    } catch (e) {
+      toastr.error(getErrorMessage(e));
+      setStatus('That token does not look valid.');
+      return;
+    }
+
+    const tokenMint = String(meta.mint ?? '').trim();
+    const tokenUnit = String(meta.unit ?? 'sat');
+    if (!tokenMint || meta.amount === 0) {
+      setStatus('Token has no spendable proofs.');
+      return;
+    }
+    if (tokenUnit !== 'sat') {
+      setStatus('This checkout expects sat denominated tokens.');
+      return;
+    }
+
+    setStatus('Connecting to mint...');
+
+    const tokenWallet = await getWalletCached(tokenMint, 'sat');
+    const decoded = tokenWallet.decodeToken(token);
+    let proofs = decoded.proofs;
+
+    if (!Array.isArray(proofs) || proofs.length === 0) {
+      setStatus('Token has no usable proofs.');
+      return;
+    }
+
+    // Trusted mint token, pay vendor directly
+    if (sameMint(tokenMint, data.trustedMint)) {
+      const trustedWallet = await trustedWalletP;
+      await meltTrustedProofsToVendor(proofs, trustedWallet);
+      return;
+    }
+
+    // Untrusted: melt at untrusted mint to pay the trusted mint quote invoice
+    const mq = await ensureMintQuote();
+
+    const amount = sumProofs(proofs);
+    const fees = tokenWallet.getFeesForProofs(proofs);
+
+    setStatus('Calculating your mint’s fees...');
+    const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mq.request);
+
+    const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
+    const meltFees = utMeltQuote.fee_reserve + fees;
+
+    if (amount < required) {
+      setStatus(
+        `Token amount (${amount}) is too small. Please paste a token of at least ${required} sats to cover your mint’s fees (${meltFees}).`,
+      );
+      return;
+    }
+
+    setStatus('Sending payment...');
+    const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
+
+    const change = getChangeToken(utMeltRes, tokenWallet.mint.mintUrl);
+    if (change) {
+      rememberChangeTokens([change]);
+      void run(() => checkOrderStatus([change]));
+    }
+
+    setStatus('Waiting for payment confirmation...');
   }
+
+  // ------------------------------
+  // Mint Quote
+  // ------------------------------
 
   async function ensureMintQuote(): Promise<StoredMintQuote> {
     if (mqP) return mqP;
@@ -274,129 +426,16 @@ jQuery(function ($) {
     return mqP;
   }
 
-  async function confirmOnce(
-    extraChangeTokens: string[] = [],
-  ): Promise<ConfirmPaidResponse | null> {
-    const restRoot = String(window.cashu_wc?.rest_root ?? '');
-    const route = String(window.cashu_wc?.confirm_route ?? '');
-    if (!restRoot || !route) return null;
+  function storedMintQuoteLooksUsable(mq: StoredMintQuote | null): mq is StoredMintQuote {
+    if (!mq) return false;
+    if (!mq.quote || !mq.request || !mq.mint) return false;
+    if (mq.amount !== data.expectedPaySats) return false;
+    if (!sameMint(mq.mint, data.trustedMint)) return false;
 
-    const endpoint = restRoot.replace(/\/?$/, '/') + route.replace(/^\//, '');
-
-    const stored = loadJson<string[]>(ls.change) ?? [];
-    const allChange = Array.from(
-      new Set([...stored, ...extraChangeTokens.map(String)]),
-    ).filter(Boolean);
-
-    const payload: any = {
-      order_id: data.orderId,
-      order_key: data.orderKey,
-      quote_id: data.quoteId,
-    };
-    if (allChange.length > 0) payload.change_tokens = allChange;
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify(payload),
-      });
-      const json = (await res.json()) as ConfirmPaidResponse;
-
-      if (json?.state === 'PAID') {
-        doConfettiBomb();
-        await delay(2000);
-        window.location.assign(String(json.redirect ?? data.returnUrl));
-      }
-
-      if (json?.state === 'EXPIRED') {
-        status('This payment quote has expired.');
-        toastr.error('This payment quote has expired.');
-        await delay(2000);
-        window.location.assign(String(data.returnUrl)); // order received page
-      }
-
-      return json ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function confirmUntilPaid(attempts: number, waitMs: number): Promise<void> {
-    for (let i = 0; i < attempts; i++) {
-      await delay(waitMs);
-      toastr.info('Confirming melt - poll #' + i);
-      const r = await confirmOnce();
-      if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
-    }
-  }
-
-  async function meltTrustedProofsToVendor(
-    proofs: Proof[],
-    trustedWallet: Wallet,
-  ): Promise<void> {
-    const amount = sumProofs(proofs);
-    const fees = trustedWallet.getFeesForProofs(proofs);
-
-    // Safety: backup proofs before melt as they may have been minted by us
-    // in the QR Code or untrusted mint payment flows
-    try {
-      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
-      localStorage.setItem(ls.recovery, rec);
-    } catch {
-      // ignore
-    }
-
-    status('Paying invoice...');
-
-    const w = trustedWallet;
-    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
-    const meltRes = await w.meltProofsBolt11(quote, proofs);
-    toastr.info('Melted proofs to pay invoice.');
-
-    // Spent, so clear recovery
-    try {
-      localStorage.removeItem(ls.recovery);
-    } catch {
-      // ignore
-    }
-
-    const change = getChangeToken(meltRes, w.mint.mintUrl);
-    if (change) {
-      rememberChangeTokens([change]);
-      toastr.info('Confirming melt + saving change!');
-      void run(() => confirmOnce([change]));
-    }
-
-    status('Confirming payment...');
-    void run(() => confirmUntilPaid(12, 1200));
-  }
-
-  let mintHandleP: Promise<void> | null = null;
-
-  async function handleMintQuotePaid(mq: StoredMintQuote): Promise<void> {
-    if (mintHandleP) return mintHandleP;
-
-    mintHandleP = (async () => {
-      status('Payment detected, finalising...');
-      const wallet = await trustedWalletP;
-
-      const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
-
-      deleteJson(ls.mq);
-      mqP = null;
-
-      await meltTrustedProofsToVendor(mintedProofs, wallet);
-    })();
-
-    try {
-      await mintHandleP;
-    } catch (e) {
-      // allow retry if it failed
-      mintHandleP = null;
-      throw e;
-    }
+    const exp = typeof mq.expiry === 'number' ? mq.expiry : 0;
+    const now = Math.floor(Date.now() / 1000);
+    if (exp > 0 && exp <= now) return false;
+    return true;
   }
 
   async function startMintQuoteWatcher(): Promise<void> {
@@ -450,175 +489,144 @@ jQuery(function ($) {
     }
   }
 
+  async function handleMintQuotePaid(mq: StoredMintQuote): Promise<void> {
+    if (mintHandleP) return mintHandleP;
+
+    mintHandleP = (async () => {
+      setStatus('Payment detected, finalising...');
+      const wallet = await trustedWalletP;
+
+      const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
+
+      deleteJson(ls.mq);
+      mqP = null;
+
+      await meltTrustedProofsToVendor(mintedProofs, wallet);
+    })();
+
+    try {
+      await mintHandleP;
+    } catch (e) {
+      // allow retry if it failed
+      mintHandleP = null;
+      throw e;
+    }
+  }
+
+  // ------------------------------
+  // Order Status
+  // ------------------------------
+
+  async function checkOrderStatus(
+    extraChangeTokens: string[] = [],
+  ): Promise<ConfirmPaidResponse | null> {
+    const restRoot = String(window.cashu_wc?.rest_root ?? '');
+    const route = String(window.cashu_wc?.confirm_route ?? '');
+    if (!restRoot || !route) return null;
+
+    const endpoint = restRoot.replace(/\/?$/, '/') + route.replace(/^\//, '');
+
+    const stored = loadJson<string[]>(ls.change) ?? [];
+    const allChange = Array.from(
+      new Set([...stored, ...extraChangeTokens.map(String)]),
+    ).filter(Boolean);
+
+    const payload: any = {
+      order_id: data.orderId,
+      order_key: data.orderKey,
+      quote_id: data.quoteId,
+    };
+    if (allChange.length > 0) payload.change_tokens = allChange;
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json()) as ConfirmPaidResponse;
+
+      if (json?.state === 'PAID') {
+        doConfettiBomb();
+        await delay(2000);
+        window.location.assign(String(json.redirect ?? data.returnUrl));
+      }
+
+      if (json?.state === 'EXPIRED') {
+        setStatus('This payment quote has expired.');
+        toastr.error('This payment quote has expired.');
+        await delay(2000);
+        window.location.assign(String(data.returnUrl)); // order received page
+      }
+
+      return json ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function pollOrderStatus(attempts: number, waitMs: number): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+      await delay(waitMs);
+      toastr.info('Confirming melt - poll #' + i);
+      const r = await checkOrderStatus();
+      if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
+    }
+  }
+
+  // ------------------------------
+  // Melt Quote
+  // ------------------------------
+
   async function startMeltPaidWatcher(): Promise<void> {
     try {
       const w = await trustedWalletP;
       const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
 
       await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
-      status('Payment detected, finalising...');
-      void run(() => confirmOnce());
+      setStatus('Payment detected, finalising...');
+      void run(() => checkOrderStatus());
     } catch {
       // ignore timeout/abort
     }
   }
 
-  async function payFromToken(token: string): Promise<void> {
-    status('Checking token...');
-
-    let meta: TokenMetadata;
+  async function meltTrustedProofsToVendor(
+    proofs: Proof[],
+    trustedWallet: Wallet,
+  ): Promise<void> {
+    // Backup proofs before melt as they may have been minted by us
+    // in the QR Code or untrusted mint payment flows
     try {
-      meta = getTokenMetadata(token);
-    } catch (e) {
-      toastr.error(getErrorMessage(e));
-      status('That token does not look valid.');
-      return;
+      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
+      localStorage.setItem(ls.recovery, rec);
+    } catch {
+      // ignore
     }
 
-    const tokenMint = String(meta.mint ?? '').trim();
-    const tokenUnit = String(meta.unit ?? 'sat');
-    if (!tokenMint || meta.amount === 0) {
-      status('Token has no spendable proofs.');
-      return;
-    }
-    if (tokenUnit !== 'sat') {
-      status('This checkout expects sat denominated tokens.');
-      return;
-    }
+    setStatus('Paying invoice...');
 
-    status('Connecting to mint...');
+    const w = trustedWallet;
+    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
+    const meltRes = await w.meltProofsBolt11(quote, proofs);
+    toastr.info('Melted proofs to pay invoice.');
 
-    const tokenWallet = await getWalletCached(tokenMint, 'sat');
-    const decoded = tokenWallet.decodeToken(token);
-    let proofs = decoded.proofs;
-
-    if (!Array.isArray(proofs) || proofs.length === 0) {
-      status('Token has no usable proofs.');
-      return;
+    // Spent, so clear recovery
+    try {
+      localStorage.removeItem(ls.recovery);
+    } catch {
+      // ignore
     }
 
-    // Trusted mint token, pay vendor directly
-    if (sameMint(tokenMint, data.trustedMint)) {
-      const trustedWallet = await trustedWalletP;
-      await meltTrustedProofsToVendor(proofs, trustedWallet);
-      return;
-    }
-
-    // Untrusted: melt at untrusted mint to pay the trusted mint quote invoice
-    const mq = await ensureMintQuote();
-
-    const amount = sumProofs(proofs);
-    const fees = tokenWallet.getFeesForProofs(proofs);
-
-    status('Calculating your mint’s fees...');
-    const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mq.request);
-
-    const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
-    const meltFees = utMeltQuote.fee_reserve + fees;
-
-    if (amount < required) {
-      status(
-        `Token amount (${amount}) is too small. Please paste a token of at least ${required} sats to cover your mint’s fees (${meltFees}).`,
-      );
-      return;
-    }
-
-    status('Sending payment...');
-    const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
-
-    const change = getChangeToken(utMeltRes, tokenWallet.mint.mintUrl);
+    const change = getChangeToken(meltRes, w.mint.mintUrl);
     if (change) {
       rememberChangeTokens([change]);
-      void run(() => confirmOnce([change]));
+      toastr.info('Confirming melt + saving change!');
+      void run(() => checkOrderStatus([change]));
     }
 
-    // Important: do NOT sit here waiting while holding the UI lock.
-    // If the mint paid it, our mint-quote watcher will continue automatically.
-    status('Waiting for payment confirmation...');
+    setStatus('Confirming payment...');
+    void run(() => pollOrderStatus(12, 1200));
   }
-
-  // Wire UI
-  lock(false);
-  // status('Preparing payment...');
-
-  $form.off('submit').on('submit', (e) => {
-    e.preventDefault();
-    const token = getToken();
-    if (!token) {
-      status('Paste a Cashu token first.');
-      return;
-    }
-    void run(() => payFromToken(token), { user: true });
-  });
-
-  // $input.off('paste').on('paste', () => {
-  //   window.setTimeout(() => {
-  //     const token = getToken();
-  //     void run(() => payFromToken(token), { user: true });
-  //   }, 0);
-  // });
-
-  // Start async processes (don’t block UI)
-  void startMintQuoteWatcher().catch(() => {
-    status('Could not prepare the invoice, please refresh and try again.');
-  });
-
-  void startMeltPaidWatcher();
-  void run(() => confirmOnce());
 });
-
-/**
- * Reads order data-* attributes on gateway receipt_page().
- */
-function readRootData($root: JQuery<HTMLElement>): RootData {
-  const orderId = Number($root.data('order-id'));
-  const orderKey = String($root.data('order-key') ?? '');
-  const returnUrl = String($root.data('return-url') ?? '');
-  const expectedPaySats = Number($root.data('pay-amount-sats') ?? 0);
-  const quoteId = String($root.data('melt-quote-id') ?? '');
-  const quoteExpiry = Number($root.data('melt-quote-expiry') ?? 0);
-  const trustedMint = String($root.data('trusted-mint') ?? '');
-
-  if (
-    !Number.isFinite(orderId) ||
-    orderId <= 0 ||
-    !orderKey ||
-    !returnUrl ||
-    !trustedMint ||
-    !Number.isFinite(expectedPaySats) ||
-    expectedPaySats <= 0 ||
-    !quoteId
-  ) {
-    throw new Error('bad');
-  }
-
-  return {
-    orderId,
-    orderKey,
-    returnUrl,
-    expectedPaySats,
-    quoteId,
-    quoteExpiry,
-    trustedMint,
-  };
-}
-
-function msUntilUnixExpiry(expirySec: number | null | undefined): number {
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (typeof expirySec === 'number' && expirySec > nowSec) {
-    return Math.max(10_000, (expirySec - nowSec + 30) * 1000);
-  }
-  return 15 * 60 * 1000;
-}
-
-function sameMint(a: string, b: string): boolean {
-  try {
-    const ua = new URL(a);
-    const ub = new URL(b);
-    const normA = ua.origin + ua.pathname.replace(/\/+$/, '');
-    const normB = ub.origin + ub.pathname.replace(/\/+$/, '');
-    return normA === normB;
-  } catch {
-    return a.replace(/\/+$/, '') === b.replace(/\/+$/, '');
-  }
-}
