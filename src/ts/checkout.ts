@@ -122,14 +122,6 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
   };
 }
 
-function msUntilUnixExpiry(expirySec: number | null | undefined): number {
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (typeof expirySec === 'number' && expirySec > nowSec) {
-    return Math.max(10_000, (expirySec - nowSec + 30) * 1000);
-  }
-  return 15 * 60 * 1000;
-}
-
 function sameMint(a: string, b: string): boolean {
   try {
     const ua = new URL(a);
@@ -467,17 +459,17 @@ jQuery(function ($) {
   async function startMintQuoteWatcher(): Promise<void> {
     const mq = await ensureMintQuote();
     const wallet = await trustedWalletP;
-    const deadline = Date.now() + msUntilUnixExpiry(mq.expiry);
 
     // Websocket is the primary watcher
     const ws = async () => {
-      const timeoutMs = Math.max(10_000, deadline - Date.now());
+      const expiryMs = data.quoteExpiry * 1000 - Date.now();
+      const timeoutMs = Math.max(10_000, expiryMs); // min 10s
       await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
     };
 
     // Fallback: poll every 3s until paid or time runs out
     const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < deadline) {
+      while (!ac.signal.aborted && Date.now() < data.quoteExpiry) {
         const q = await wallet.checkMintQuoteBolt11(mq.quote);
         if (q.state === 'PAID') return; // promise: success
         await delay(3000);
@@ -534,7 +526,8 @@ jQuery(function ($) {
 
     // Websocket is the primary watcher
     const ws = async () => {
-      const timeoutMs = Math.max(10_000, data.quoteExpiry - Date.now());
+      const expiryMs = data.quoteExpiry * 1000 - Date.now();
+      const timeoutMs = Math.max(10_000, expiryMs); // min 10s
       await wallet.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
     };
 
@@ -548,7 +541,7 @@ jQuery(function ($) {
         await delay(3000);
       }
       // promise: failure
-      throw new Error('Mint quote timed out or was aborted.');
+      throw new Error('Melt quote timed out or was aborted.');
     };
 
     try {
