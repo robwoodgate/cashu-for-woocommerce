@@ -465,10 +465,14 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		// Fallback: Ensure spot quote is still valid - in case page is refreshed.
 		$quote_expiry = absint( $order->get_meta( '_cashu_melt_quote_expiry', true ) );
-		$spot_expiry  = absint( $order->get_meta( '_cashu_spot_time', true ) );
-		if ( $spot_expiry < time() - self::QUOTE_EXPIRY_SECS || $quote_expiry < $spot_expiry ) {
+		$spot_time    = absint( $order->get_meta( '_cashu_spot_time', true ) );
+		$spot_expiry  = $spot_time + self::QUOTE_EXPIRY_SECS;
+		if ( $spot_expiry < time() || $quote_expiry < $spot_expiry ) {
 			try {
 				$this->setup_cashu_payment( $order );
+				// Reset spot expiry
+				$spot_time   = absint( $order->get_meta( '_cashu_spot_time', true ) );
+				$spot_expiry = $spot_time + self::QUOTE_EXPIRY_SECS;
 			} catch ( \Error $e ) {
 				Logger::error( 'Could not setup Cashu payment on receipt page: ' . $e->getMessage() );
 				wc_add_notice( __( 'Cashu payment setup failed, please try again.', 'cashu-for-woocommerce' ), 'error' );
@@ -494,7 +498,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			data-pay-amount-sats="' . esc_attr( $pay_amount_sats ) . '"
 			data-pay-fees-sats="' . esc_attr( $pay_fees_sats ) . '"
 			data-melt-quote-id="' . esc_attr( $quote_id ) . '"
-			data-melt-quote-expiry="' . esc_attr( $quote_expiry ) . '"
+			data-spot-quote-expiry="' . esc_attr( $spot_expiry ) . '"
 			data-trusted-mint="' . esc_attr( $trusted_mint ) . '"
 		></div>';
 

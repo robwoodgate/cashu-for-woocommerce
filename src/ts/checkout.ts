@@ -94,7 +94,7 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
   const returnUrl = String($root.data('return-url') ?? '');
   const expectedPaySats = Number($root.data('pay-amount-sats') ?? 0);
   const quoteId = String($root.data('melt-quote-id') ?? '');
-  const quoteExpiry = Number($root.data('melt-quote-expiry') ?? 0);
+  const quoteExpiry = Number($root.data('spot-quote-expiry') ?? 0);
   const trustedMint = String($root.data('trusted-mint') ?? '');
 
   if (
@@ -175,6 +175,20 @@ function deleteJson(key: string): void {
 // Bootstrap checkout
 // ------------------------------
 
+/**
+ * We support two checkout flows: QR Code & Token
+ *
+ * QR Code pays a MINT quote at trusted mint via lightning Network (LN).
+ * If the customer pays from trusted mint, they save LN fees.
+ * Whichever mint they use, we get proofs at our trusted mint.
+ *
+ * Token can be from any mint. If from an untrusted mint, we melt them to
+ * pay the MINT quote at trusted mint via lightning Network (LN).
+ *
+ * Once we have trusted proofs we MELT them to pay the vendor LN invoice.
+ * We then ask the WooCommerce store to confirm the melt is paid.
+ */
+
 jQuery(function ($) {
   // Init UI
   const $root = $('#cashu-pay-root');
@@ -219,21 +233,40 @@ jQuery(function ($) {
   const trustedWalletP = getWalletCached(data.trustedMint, 'sat');
   const getToken = () => String($input.val() ?? '').trim();
   const ls = {
-    mq: `cashu_wc_mq_${data.orderId}`,
-    change: `cashu_wc_change_${data.orderId}`,
-    recovery: `cashu_wc_recovery_${data.orderId}`, // keep as invisible safety
+    mq: 'cashu_wc_mq',
+    change: 'cashu_wc_change',
+    recovery: 'cashu_wc_recovery',
   };
 
   // Start async processes (don’t block UI)
-  void startMintQuoteWatcher().catch(() => {
+  void renderQr().catch(() => {
     setStatus('Could not prepare the invoice, please refresh and try again.');
   });
+  void startMintQuoteWatcher();
   void startMeltPaidWatcher();
   void run(() => checkOrderStatus());
 
   // ------------------------------
   // Checkout Helpers
   // ------------------------------
+
+  async function renderQr(): Promise<void> {
+    const mq = await ensureMintQuote();
+    const el = $qr.get(0) as HTMLElement | undefined;
+    if (!el || typeof QRCode === 'undefined') return;
+    el.innerHTML = '';
+    // eslint-disable-next-line no-new
+    new QRCode(el, {
+      text: 'lightning:' + mq.request,
+      width: 360,
+      height: 360,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.Q,
+    });
+    // Copy on click
+    $qr.off('click').on('click', () => copyTextToClipboard(mq.request));
+  }
 
   async function run<T>(
     fn: () => Promise<T>,
@@ -301,21 +334,6 @@ jQuery(function ($) {
     const change = Array.isArray(meltResponse?.change) ? meltResponse.change : [];
     if (change.length === 0) return '';
     return getEncodedTokenV4({ mint: mintUrl, proofs: change, unit: 'sat' });
-  }
-
-  function renderQr(text: string): void {
-    const el = $qr.get(0) as HTMLElement | undefined;
-    if (!el || typeof QRCode === 'undefined') return;
-    el.innerHTML = '';
-    // eslint-disable-next-line no-new
-    new QRCode(el, {
-      text,
-      width: 360,
-      height: 360,
-      colorDark: '#000000',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.Q,
-    });
   }
 
   // ------------------------------
@@ -409,6 +427,7 @@ jQuery(function ($) {
 
       const wallet = await trustedWalletP;
       const mq = await wallet.createMintQuoteBolt11(data.expectedPaySats);
+      toastr.info('created mint quote');
 
       const store: StoredMintQuote = {
         mint: data.trustedMint,
@@ -442,46 +461,37 @@ jQuery(function ($) {
 
   async function startMintQuoteWatcher(): Promise<void> {
     const mq = await ensureMintQuote();
-    renderQr('lightning:' + mq.request);
-
-    $qr.off('click').on('click', () => copyTextToClipboard(mq.request));
-
     const wallet = await trustedWalletP;
+    const deadline = Date.now() + msUntilUnixExpiry(mq.expiry);
 
-    // wait, with fallback
-    await waitMintQuotePaid(wallet, mq.quote, mq.expiry);
-    void run(() => handleMintQuotePaid(mq));
-  }
-
-  async function waitMintQuotePaid(
-    wallet: Wallet,
-    quoteId: string,
-    expiry: number | null | undefined,
-  ): Promise<void> {
-    const deadline = Date.now() + msUntilUnixExpiry(expiry);
-
-    // Websocket, may throw
+    // Websocket is the primary watcher
     const ws = async () => {
       const timeoutMs = Math.max(10_000, deadline - Date.now());
-      await wallet.on.onceMintPaid(quoteId, { signal: ac.signal, timeoutMs });
+      await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
     };
 
-    // Poll every 3s until paid or time runs out
+    // Fallback: poll every 3s until paid or time runs out
     const poll = async () => {
       while (!ac.signal.aborted && Date.now() < deadline) {
-        const q = await wallet.checkMintQuoteBolt11(quoteId);
-        if (q.state === 'PAID') return;
+        const q = await wallet.checkMintQuoteBolt11(mq.quote);
+        if (q.state === 'PAID') return; // promise: success
         await delay(3000);
       }
+      // promise: failure
       throw new Error('Mint quote timed out or was aborted.');
     };
 
     try {
+      // Try websocket first...
       await ws();
-    } catch {
-      // websocket path failed, just poll quietly
+    } catch (e: unknown) {
+      // fallback to poll unless aborted
+      if (ac.signal.aborted) throw e;
       await poll();
     }
+
+    // success!
+    void run(() => handleMintQuotePaid(mq));
   }
 
   async function handleMintQuotePaid(mq: StoredMintQuote): Promise<void> {
@@ -518,13 +528,46 @@ jQuery(function ($) {
     try {
       const w = await trustedWalletP;
       const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
-
       await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
       setStatus('Payment detected, finalising...');
       void run(() => checkOrderStatus());
     } catch {
       // ignore timeout/abort
     }
+  }
+
+  async function startMeltPaidWatcher(): Promise<void> {
+    const wallet = await trustedWalletP;
+    const deadline = Date.now() + msUntilUnixExpiry(mq.expiry);
+
+    // Websocket is the primary watcher
+    const ws = async () => {
+      const timeoutMs = Math.max(10_000, deadline - Date.now());
+      await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
+    };
+
+    // Fallback: poll every 3s until paid or time runs out
+    const poll = async () => {
+      while (!ac.signal.aborted && Date.now() < deadline) {
+        const q = await wallet.checkMintQuoteBolt11(mq.quote);
+        if (q.state === 'PAID') return; // promise: success
+        await delay(3000);
+      }
+      // promise: failure
+      throw new Error('Mint quote timed out or was aborted.');
+    };
+
+    try {
+      // Try websocket first...
+      await ws();
+    } catch (e: unknown) {
+      // fallback to poll unless aborted
+      if (ac.signal.aborted) throw e;
+      await poll();
+    }
+
+    // success!
+    void run(() => handleMintQuotePaid(mq));
   }
 
   async function meltTrustedProofsToVendor(

@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2026-01-07 20:22:30+00:00\n"
+"POT-Creation-Date: 2026-01-07 22:46:28+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -136,7 +136,7 @@ msgstr ""
 msgid "Enable Cashu Gateway"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:171 src/Gateway/CashuGateway.php:474
+#: src/Gateway/CashuGateway.php:171 src/Gateway/CashuGateway.php:478
 msgid "Cashu payment setup failed, please try again."
 msgstr ""
 
@@ -161,32 +161,32 @@ msgstr ""
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:502
+#: src/Gateway/CashuGateway.php:506
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:504
+#: src/Gateway/CashuGateway.php:508
 msgid "Amount Due"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:531
+#: src/Gateway/CashuGateway.php:535
 #. translators: %1$s: Mint hostname
 msgid "Fees will be lowest if you use: %1$s"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:551
+#: src/Gateway/CashuGateway.php:555
 msgid "Scan the QR code or paste a Cashu token."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:566
+#: src/Gateway/CashuGateway.php:570
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:574
+#: src/Gateway/CashuGateway.php:578
 msgid "Enter your cashu token…"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:578
+#: src/Gateway/CashuGateway.php:582
 msgid "Pay"
 msgstr ""
 
