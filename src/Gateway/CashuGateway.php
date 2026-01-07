@@ -45,9 +45,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 			__( 'Paste your cashuB… token below.', 'cashu-for-woocommerce' )
 		);
 		$this->enabled      = $this->get_option( 'enabled' );
-		$mint               = trim( (string) get_option( 'cashu_trusted_mint', '' ) );
-		$this->trusted_mint = rtrim( $mint, '/' );
-		$this->ln_address   = trim( (string) get_option( 'cashu_lightning_address', '' ) );
+		$this->trusted_mint = (string) get_option( 'cashu_trusted_mint', '' );
+		$this->ln_address   = (string) get_option( 'cashu_lightning_address', '' );
 
 		// Load / save settings
 		$this->init_settings();
@@ -317,11 +316,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->add_order_note(
 			sprintf(
 				/* translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total required sats */
-				__( 'Cashu melt quote created, invoice: %1$s sats, fee_reserve: %2$s sats, ppk_fee: %3$s sats, total: %4$s sats', 'cashu-for-woocommerce' ),
-				(string) $amount,
-				(string) $fee_reserve,
-				(string) $ppk_fee,
-				(string) $total
+				__( "Cashu melt quote created:\nInvoice: %1\$s\nLightning fee reserve: %2\$s\nMint fee reserve: %3\$s\nTotal: %4\$s", 'cashu-for-woocommerce' ),
+				(string) CASHU_WC_BIP177_SYMBOL . $amount,
+				(string) CASHU_WC_BIP177_SYMBOL . $fee_reserve,
+				(string) CASHU_WC_BIP177_SYMBOL . $ppk_fee,
+				(string) CASHU_WC_BIP177_SYMBOL . $total
 			)
 		);
 	}
@@ -478,6 +477,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		$pay_amount_sats = absint( $order->get_meta( '_cashu_melt_total', true ) );
 		$pay_fees_sats   = absint( $order->get_meta( '_cashu_melt_fees', true ) );
+		$invoice_total   = $pay_amount_sats - $pay_fees_sats;
 		$quote_id        = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$trusted_mint    = (string) $order->get_meta( '_cashu_melt_mint', true );
 		$mint_host       = preg_replace( '/^www\./i', '', (string) wp_parse_url( $trusted_mint, PHP_URL_HOST ) );
@@ -501,18 +501,55 @@ class CashuGateway extends \WC_Payment_Gateway {
 		?>
 		<section id="cashu-payment" class="cashu-checkout" aria-label="<?php echo esc_attr__( 'Cashu payment', 'cashu-for-woocommerce' ); ?>">
 			<div class="cashu-amount-box cashu-center">
-				<div class="cashu-paywith"><?php esc_html_e( 'Pay', 'cashu-for-woocommerce' ); ?></div>
+				<div class="cashu-payamount"><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></div>
 				<h2 class="cashu-amount">
 					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?>
 				</h2>
-				<div class="cashu-paywith">
-				<?php
+
+				<?php $details_id = 'payment-details-' . sanitize_key( $order_id ); ?>
+				<div id="<?php echo esc_attr( $details_id ); ?>" class="payment-details js-payment-details" style="display:none;">
+					<dl class="payment-dl">
+						<div class="payment-row">
+							<dt>Total Price</dt>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $invoice_total ); ?></dd>
+						</div>
+
+						<div class="payment-row">
+							<dt>Network Cost (est)</dt>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_fees_sats ); ?></dd>
+						</div>
+
+						<div class="payment-row">
+							<dt>Amount Due</dt>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
+						</div>
+					</dl>
+					<div class="cashu-feenote">
+					<?php
 					printf(
 						/* translators: %1$s: Mint hostname */
-						esc_html__( 'Fees will be lower if you use %1$s', 'cashu-for-woocommerce' ),
-						'<strong>' . esc_html( $mint_host ) . '</strong>'
+						esc_html__( 'Fees will be lowest if you use: %1$s', 'cashu-for-woocommerce' ),
+						'<strong>' . esc_html( $trusted_mint ) . '</strong>'
 					);
-				?>
+					?>
+					</div>
+				</div>
+
+				<button
+					type="button"
+					class="payment-details-toggle js-payment-details-toggle"
+					aria-controls="<?php echo esc_attr( $details_id ); ?>"
+					aria-expanded="false"
+				>
+					View Details
+					<svg class="payment-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+					<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</button>
+				<div id="cashu-status" class="cashu-status" role="status" aria-live="polite">
+					<?php
+					esc_html_e( 'Scan the QR code or paste a Cashu token.', 'cashu-for-woocommerce' )
+					?>
 				</div>
 			</div>
 			<div class="cashu-box">
@@ -540,18 +577,25 @@ class CashuGateway extends \WC_Payment_Gateway {
 					<button type="submit" class="cashu-paybtn">
 						<?php echo esc_html__( 'Pay', 'cashu-for-woocommerce' ); ?>
 					</button>
-
-					<p class="cashu-foot">
-						<?php
-						printf(
-							/* translators: %1$s: Mint hostname */
-							esc_html__( 'Fees will be lower if you use %1$s', 'cashu-for-woocommerce' ),
-							'<strong>' . esc_html( $mint_host ) . '</strong>'
-						);
-						?>
-					</p>
 				</form>
 			</div>
+			<script>
+				jQuery(function ($) {
+					$(document).on('click', '.js-payment-details-toggle', function () {
+						var $btn = $(this);
+						var targetId = $btn.attr('aria-controls');
+						var $details = $('#' + targetId);
+
+						var isOpen = $btn.attr('aria-expanded') === 'true';
+
+						$btn.attr('aria-expanded', String(!isOpen));
+						$btn.toggleClass('is-open', !isOpen);
+
+						// drawer animation
+						$details.stop(true, true).slideToggle(180);
+					});
+				});
+			</script>
 		</section>
 		<?php
 	}

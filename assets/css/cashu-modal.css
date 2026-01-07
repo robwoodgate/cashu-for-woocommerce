@@ -38,11 +38,57 @@
   margin: 6px 0 10px;
 }
 
-.cashu-paywith {
+.cashu-payamount,
+.cashu-feenote,
+.payment-details {
   color: var(--cashu-muted);
   font-size: 0.9rem;
-  font-weight: 600;
   margin: 12px 0 8px;
+}
+
+.payment-details {
+  margin: 0 auto;
+  max-width: 240px;
+}
+
+.payment-dl {
+  margin: 0;
+}
+
+.payment-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+}
+
+.payment-row dt {
+  opacity: 0.7;
+}
+
+.payment-row dd {
+  font-weight: 600;
+  margin: 0;
+}
+
+.payment-details-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--cashu-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.9rem;
+  padding: 0.75rem 0;
+}
+
+.payment-chevron {
+  display: inline-block;
+  transition: transform 160ms ease;
+  vertical-align: middle;
+}
+
+.payment-details-toggle.is-open .payment-chevron {
+  transform: rotate(180deg);
 }
 
 .cashu-box {
@@ -166,7 +212,7 @@
   opacity: 0.55;
 }
 
-.cashu-foot {
+.cashu-status {
   color: var(--cashu-muted);
   font-size: 1rem;
   margin: 12px 0 0;

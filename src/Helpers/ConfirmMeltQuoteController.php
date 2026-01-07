@@ -161,8 +161,7 @@ final class ConfirmMeltQuoteController {
 
 		$state = (string) $data['state'];
 
-		// Persist last seen state for debugging.
-		$order->update_meta_data( '_cashu_melt_quote_state', $state );
+		// Persist payment preimage
 		$payment_preimage = '';
 		if ( isset( $data['payment_preimage'] ) && is_string( $data['payment_preimage'] ) && '' !== $data['payment_preimage'] ) {
 			$payment_preimage = $data['payment_preimage'];
@@ -173,12 +172,16 @@ final class ConfirmMeltQuoteController {
 		if ( 'PAID' === $state ) {
 			if ( ! $order->is_paid() ) {
 				$order->payment_complete( $quote_id );
+				$lightning_address = (string) get_option( 'cashu_lightning_address', '' );
 				$order->add_order_note(
 					sprintf(
-						/* translators: %1$s: Melt Quote, %2$s: Payment preimage */
-						__( "Cashu melt quote paid: %1\$s\nPayment preimage: %2\$s", 'cashu-for-woocommerce' ),
-						$quote_id,
-						$payment_preimage
+						/* translators: %1$s: BTC Symbol, %2$s: amount, %3$s: Lightning Address, %4$s: Melt Quote ID, %5$s: Payment preimage */
+						__( "Cashu payment: %1\$s%2\$s\nSent to: %3\$s\nMelt quote: %4\$s\nPayment preimage: %5\$s", 'cashu-for-woocommerce' ),
+						CASHU_WC_BIP177_SYMBOL,
+						(string) $data['amount'],
+						$lightning_address,
+						(string) $quote_id,
+						(string) $payment_preimage
 					)
 				);
 			}
