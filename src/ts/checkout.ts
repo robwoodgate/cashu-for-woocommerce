@@ -395,7 +395,9 @@ jQuery(function ($) {
   }
 
   // ------------------------------
-  // Mint Quote
+  // Mint Quote - For QR Code or
+  // tokens from untrusted mints.
+  // Returns proofs at trusted mint
   // ------------------------------
 
   async function ensureMintQuote(): Promise<StoredMintQuote> {
@@ -446,13 +448,6 @@ jQuery(function ($) {
 
     const wallet = await trustedWalletP;
 
-    // quick state check
-    const q = await wallet.checkMintQuoteBolt11(mq.quote);
-    if (q.state === 'PAID') {
-      void run(() => handleMintQuotePaid(mq));
-      return;
-    }
-
     // wait, with fallback
     await waitMintQuotePaid(wallet, mq.quote, mq.expiry);
     void run(() => handleMintQuotePaid(mq));
@@ -465,6 +460,12 @@ jQuery(function ($) {
   ): Promise<void> {
     const deadline = Date.now() + msUntilUnixExpiry(expiry);
 
+    // Websocket, may throw
+    const ws = async () => {
+      const timeoutMs = Math.max(10_000, deadline - Date.now());
+      await wallet.on.onceMintPaid(quoteId, { signal: ac.signal, timeoutMs });
+    };
+
     // Poll every 3s until paid or time runs out
     const poll = async () => {
       while (!ac.signal.aborted && Date.now() < deadline) {
@@ -473,12 +474,6 @@ jQuery(function ($) {
         await delay(3000);
       }
       throw new Error('Mint quote timed out or was aborted.');
-    };
-
-    // Websocket wait, may throw
-    const ws = async () => {
-      const timeoutMs = Math.max(10_000, deadline - Date.now());
-      await wallet.on.onceMintPaid(quoteId, { signal: ac.signal, timeoutMs });
     };
 
     try {
@@ -514,7 +509,65 @@ jQuery(function ($) {
   }
 
   // ------------------------------
-  // Order Status
+  // Melt Quote - To pay vendor's
+  // lightning invoice and settle
+  // using proofs from trusted mint
+  // ------------------------------
+
+  async function startMeltPaidWatcher(): Promise<void> {
+    try {
+      const w = await trustedWalletP;
+      const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
+
+      await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
+      setStatus('Payment detected, finalising...');
+      void run(() => checkOrderStatus());
+    } catch {
+      // ignore timeout/abort
+    }
+  }
+
+  async function meltTrustedProofsToVendor(
+    proofs: Proof[],
+    trustedWallet: Wallet,
+  ): Promise<void> {
+    // Backup proofs before melt as they may have been minted by us
+    // in the QR Code or untrusted mint payment flows
+    try {
+      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
+      localStorage.setItem(ls.recovery, rec);
+    } catch {
+      // ignore
+    }
+
+    setStatus('Paying invoice...');
+
+    const w = trustedWallet;
+    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
+    const meltRes = await w.meltProofsBolt11(quote, proofs);
+    toastr.info('Melted proofs to pay invoice.');
+
+    // Spent, so clear recovery
+    try {
+      localStorage.removeItem(ls.recovery);
+    } catch {
+      // ignore
+    }
+
+    const change = getChangeToken(meltRes, w.mint.mintUrl);
+    if (change) {
+      rememberChangeTokens([change]);
+      toastr.info('Confirming melt + saving change!');
+      void run(() => checkOrderStatus([change]));
+    }
+
+    setStatus('Confirming payment...');
+    void run(() => pollOrderStatus(12, 1200));
+  }
+
+  // ------------------------------
+  // Order Status - Check WooCommerce
+  // has confirmed lightning payment
   // ------------------------------
 
   async function checkOrderStatus(
@@ -573,60 +626,5 @@ jQuery(function ($) {
       const r = await checkOrderStatus();
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
     }
-  }
-
-  // ------------------------------
-  // Melt Quote
-  // ------------------------------
-
-  async function startMeltPaidWatcher(): Promise<void> {
-    try {
-      const w = await trustedWalletP;
-      const timeoutMs = msUntilUnixExpiry(data.quoteExpiry);
-
-      await w.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
-      setStatus('Payment detected, finalising...');
-      void run(() => checkOrderStatus());
-    } catch {
-      // ignore timeout/abort
-    }
-  }
-
-  async function meltTrustedProofsToVendor(
-    proofs: Proof[],
-    trustedWallet: Wallet,
-  ): Promise<void> {
-    // Backup proofs before melt as they may have been minted by us
-    // in the QR Code or untrusted mint payment flows
-    try {
-      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
-      localStorage.setItem(ls.recovery, rec);
-    } catch {
-      // ignore
-    }
-
-    setStatus('Paying invoice...');
-
-    const w = trustedWallet;
-    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
-    const meltRes = await w.meltProofsBolt11(quote, proofs);
-    toastr.info('Melted proofs to pay invoice.');
-
-    // Spent, so clear recovery
-    try {
-      localStorage.removeItem(ls.recovery);
-    } catch {
-      // ignore
-    }
-
-    const change = getChangeToken(meltRes, w.mint.mintUrl);
-    if (change) {
-      rememberChangeTokens([change]);
-      toastr.info('Confirming melt + saving change!');
-      void run(() => checkOrderStatus([change]));
-    }
-
-    setStatus('Confirming payment...');
-    void run(() => pollOrderStatus(12, 1200));
   }
 });
