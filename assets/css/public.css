@@ -232,3 +232,171 @@
     min-width: 120px;
   }
 }
+
+/* -------------------------------------------------
+ Cashu Change Panel (Thank you page)
+ ------------------------------------------------- */
+
+.cashu-change {
+  /* keep the same tokens as .cashu-checkout so it feels native */
+  --cashu-accent: #2f8f3a;
+  --cashu-accent-soft: rgb(47 143 58 / 18%);
+  --cashu-border: rgb(0 0 0 / 12%);
+  --cashu-muted: rgb(0 0 0 / 62%);
+  --cashu-surface: #fff;
+
+  background: var(--cashu-surface);
+  border: 1px solid var(--cashu-border);
+  border-radius: 14px;
+  color: #111;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1.35;
+  margin: 18px 0;
+  padding: 16px;
+}
+
+.cashu-change,
+.cashu-change * {
+  box-sizing: border-box;
+}
+
+.cashu-change-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cashu-change-title {
+  font-weight: 750;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.cashu-change-dismiss {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--cashu-border);
+  border-radius: 9999px;
+  color: var(--cashu-muted);
+  cursor: pointer;
+  font: inherit;
+  padding: 6px 10px;
+}
+
+.cashu-change-dismiss:hover {
+  color: #111;
+}
+
+.cashu-change-lead {
+  color: var(--cashu-muted);
+  margin: 8px 0 0;
+}
+
+.cashu-change-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cashu-change-item {
+  border: 1px solid var(--cashu-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.cashu-change-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.cashu-change-label {
+  font-weight: 700;
+  margin: 0;
+}
+
+.cashu-change-badge {
+  background: var(--cashu-accent-soft);
+  border-radius: 9999px;
+  color: var(--cashu-accent);
+  display: inline-block;
+  font-weight: 750;
+  margin-left: 8px;
+  padding: 3px 9px;
+  vertical-align: middle;
+}
+
+.cashu-change-meta {
+  color: var(--cashu-muted);
+  margin-top: 4px;
+}
+
+.cashu-change-note {
+  color: var(--cashu-muted);
+  margin-top: 6px;
+}
+
+.cashu-change-btns {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.cashu-change-btn {
+  appearance: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+  padding: 8px 12px;
+}
+
+.cashu-change-copy {
+  background: var(--cashu-accent);
+  border: 0;
+  color: #fff;
+}
+
+.cashu-change-toggle {
+  background: transparent;
+  border: 1px solid var(--cashu-border);
+  color: #111;
+}
+
+.cashu-change-token {
+  background: #fff;
+  border: 1px solid var(--cashu-border);
+  border-radius: 12px;
+  font-family: ui-monospace, 'Courier New', monospace;
+  line-height: 1.4;
+  margin: 10px 0 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.cashu-change-tip {
+  color: var(--cashu-muted);
+  margin: 12px 0 0;
+}
+
+@media (width <= 520px) {
+  .cashu-change-row {
+    flex-direction: column;
+  }
+
+  .cashu-change-btns {
+    width: 100%;
+  }
+
+  .cashu-change-btn {
+    width: 100%;
+  }
+}

@@ -45,7 +45,6 @@ final class CashuWCPlugin {
 
 		// Order display extras.
 		add_filter( 'woocommerce_get_order_item_totals', array( $this, 'addCashuOrderItemTotals' ), 20, 2 );
-		add_action( 'woocommerce_order_details_after_order_table', array( $this, 'renderChangeTokenSection' ), 20, 1 );
 
 		// Settings page.
 		add_filter( 'woocommerce_get_settings_pages', array( $this, 'registerSettingsPage' ) );
@@ -293,51 +292,6 @@ final class CashuWCPlugin {
 		);
 
 		return $totals;
-	}
-
-	public function renderChangeTokenSection( \WC_Order $order ): void {
-		if ( $order->get_payment_method() !== 'cashu_default' ) {
-			return;
-		}
-
-		// Returns array of \WC_Meta_Data when single = false
-		$items = $order->get_meta( '_cashu_change_tokens', false );
-		if ( empty( $items ) ) {
-			return;
-		}
-
-		// Build a de-duped list as we go. Inclues some simple safeguards, and
-		// uses md5 to ensure uniqueness as more predictable than array_unique
-		$token_set = array();
-		foreach ( (array) $items as $item ) {
-			$value = ( $item instanceof \WC_Meta_Data ) ? $item->value : $item;
-			if ( ! is_scalar( $value ) ) {
-				continue;
-			}
-			$val = trim( (string) $value );
-			if ( $val === '' || strlen( $val ) > 20000 ) {
-				continue;
-			}
-			$token_set[ \md5( $val ) ] = $val;
-		}
-		$tokens = array_values( $token_set );
-
-		echo '<section class="woocommerce-cashu-details">';
-		echo '<h2>' . esc_html__( 'Your Cashu change token', 'cashu-for-woocommerce' ) . '</h2>';
-
-		if ( count( $tokens ) === 1 ) {
-			echo '<textarea rows="10" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;">' . esc_textarea( $tokens[0] ) . '</textarea>';
-		} else {
-			echo '<p>' . esc_html__( 'Keep each token below. They may represent separate pieces of change.', 'cashu-for-woocommerce' ) . '</p>';
-
-			foreach ( $tokens as $i => $t ) {
-				$label = sprintf( __( 'Change Token %d', 'cashu-for-woocommerce' ), $i + 1 );
-				echo '<p><strong>' . esc_html( $label ) . '</strong></p>';
-				echo '<textarea rows="6" cols="50" readonly="readonly" class="large-text" onclick="this.focus();this.select();" style="font-size:1rem;line-height:1.5;padding:1rem;margin-bottom:1rem;">' . esc_textarea( $t ) . '</textarea>';
-			}
-		}
-
-		echo '</section>';
 	}
 
 	public function addPluginActionLinks( array $links ): array {

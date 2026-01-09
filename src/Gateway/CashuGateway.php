@@ -9,7 +9,6 @@ use Cashu\WC\Helpers\CashuHelper;
 use Cashu\WC\Helpers\Logger;
 use Cashu\WC\Helpers\LightningAddress;
 use WC_Order;
-use WP_Error;
 
 class CashuGateway extends \WC_Payment_Gateway {
 
@@ -61,6 +60,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Enqueue scripts / webhooks
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_receipt_' . $this->id, array( $this, 'receipt_page' ) );
+		add_action( 'woocommerce_thankyou_' . $this->id, array( $this, 'thankyou_page' ), 20 );
 	}
 
 	/**
@@ -119,8 +119,16 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Enqueue and localize
 		wp_register_script(
 			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/dist/cashu-checkout.js',
+			CASHU_WC_PLUGIN_URL . 'assets/dist/checkout.js',
 			array( 'jquery', 'cashu-qrcode' ),
+			CASHU_WC_VERSION,
+			true
+		);
+
+		wp_register_script(
+			'cashu-thanks',
+			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/thanks.js',
+			array( 'jquery' ),
 			CASHU_WC_VERSION,
 			true
 		);
@@ -138,8 +146,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 		);
 
 		wp_register_style(
-			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/css/cashu-modal.css',
+			'cashu-public',
+			CASHU_WC_PLUGIN_URL . 'assets/css/public.css',
 			array(),
 			CASHU_WC_VERSION
 		);
@@ -484,11 +492,10 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$invoice_total   = $pay_amount_sats - $pay_fees_sats;
 		$quote_id        = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$trusted_mint    = (string) $order->get_meta( '_cashu_melt_mint', true );
-		$mint_host       = preg_replace( '/^www\./i', '', (string) wp_parse_url( $trusted_mint, PHP_URL_HOST ) );
 
 		wp_enqueue_script( 'cashu-qrcode' );
 		wp_enqueue_script( 'cashu-checkout' );
-		wp_enqueue_style( 'cashu-checkout' );
+		wp_enqueue_style( 'cashu-public' );
 		wp_enqueue_style( 'toastr' );
 
 		echo '<div id="cashu-pay-root"
@@ -602,6 +609,25 @@ class CashuGateway extends \WC_Payment_Gateway {
 			</script>
 		</section>
 		<?php
+	}
+
+	public function thankyou_page( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return;
+		}
+		if ( $order->get_payment_method() !== $this->id ) {
+			return;
+		}
+
+		wp_enqueue_style( 'cashu-public' );
+		wp_enqueue_script( 'cashu-thanks' );
+
+		echo '<div
+	    id="cashu-change-root"
+	    data-order-id="' . esc_attr( (string) $order_id ) . '"
+	    data-order-key="' . esc_attr( $order->get_order_key() ) . '"
+	  ></div>';
 	}
 
 	public function is_available(): bool {

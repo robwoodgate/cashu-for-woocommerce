@@ -4,9 +4,7 @@ import {
   Wallet,
   sumProofs,
   Proof,
-  MeltProofsResponse,
   MeltQuoteState,
-  MintQuoteBolt11Response,
   TokenMetadata,
   MeltQuoteBolt11Response,
 } from '@cashu/cashu-ts';
@@ -53,6 +51,23 @@ type StoredMintQuote = {
   quote: string;
   request: string;
   expiry?: number | null;
+};
+
+type ChangeKind = 'untrusted_melt_change' | 'vendor_melt_change';
+
+type ChangeItem = {
+  kind: ChangeKind;
+  mint: string;
+  token: string;
+  amount: number;
+  fees: number;
+  dust: boolean;
+};
+
+type ChangePayload = {
+  v: 1;
+  created: number;
+  items: ChangeItem[];
 };
 
 // ------------------------------
@@ -159,6 +174,27 @@ function saveJson(key: string, val: any): void {
 function deleteJson(key: string): void {
   try {
     localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+function loadChangePayload(key: string): ChangePayload {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return { v: 1, created: Date.now(), items: [] };
+    const parsed = JSON.parse(raw) as ChangePayload;
+    if (!parsed || !Array.isArray(parsed.items))
+      return { v: 1, created: Date.now(), items: [] };
+    return parsed;
+  } catch {
+    return { v: 1, created: Date.now(), items: [] };
+  }
+}
+
+function saveChangePayload(key: string, payload: ChangePayload): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(payload));
   } catch {
     // ignore
   }
@@ -301,36 +337,39 @@ jQuery(function ($) {
     }
   }
 
-  function rememberChangeTokens(tokens: string[]): void {
-    const clean = tokens.map((t) => String(t).trim()).filter(Boolean);
-    if (clean.length === 0) return;
-
-    const existing = loadJson<string[]>(ls.change) ?? [];
-    const merged = Array.from(new Set([...existing, ...clean])).slice(-10);
-    saveJson(ls.change, merged);
-  }
-
-  // TODO: This probably should be hooked at the point of receiving proofs BEFORE it becomes a token.
-  async function classifyChangeToken(
-    token: string,
-  ): Promise<'spendable' | 'dust' | 'unknown'> {
-    try {
-      const meta = getTokenMetadata(token);
-      if (!meta.mint) return 'unknown';
-      const w = await getWalletCached(String(meta.mint), 'sat');
-      const decoded = w.decodeToken(token);
-      const amt = sumProofs(decoded.proofs);
-      const fees = w.getFeesForProofs(decoded.proofs);
-      return amt > fees ? 'spendable' : 'dust';
-    } catch {
-      return 'unknown';
+  async function saveProofs(
+    changeProofs: Proof[],
+    wallet: Wallet,
+    kind: ChangeKind,
+  ): Promise<void> {
+    if (changeProofs.length < 1) {
+      return;
     }
+    const changeAmt = sumProofs(changeProofs);
+    const changeFees = wallet.getFeesForProofs(changeProofs);
+    const tokenStr = getEncodedTokenV4({
+      mint: wallet.mint.mintUrl,
+      proofs: changeProofs,
+      unit: 'sat',
+    });
+    rememberChangeItem({
+      kind: kind,
+      mint: wallet.mint.mintUrl,
+      token: tokenStr,
+      amount: changeAmt,
+      fees: changeFees,
+      dust: changeAmt <= changeFees,
+    });
   }
 
-  function getChangeToken(meltResponse: MeltProofsResponse, mintUrl: string): string {
-    const change = Array.isArray(meltResponse?.change) ? meltResponse.change : [];
-    if (change.length === 0) return '';
-    return getEncodedTokenV4({ mint: mintUrl, proofs: change, unit: 'sat' });
+  function rememberChangeItem(item: ChangeItem): void {
+    const payload = loadChangePayload(ls.change);
+    // de-dupe by token string
+    const exists = payload.items.some((x) => x.token === item.token);
+    if (!exists) payload.items.push(item);
+    // cap to 5 items
+    payload.items = payload.items.slice(-5);
+    saveChangePayload(ls.change, payload);
   }
 
   // ------------------------------
@@ -400,12 +439,8 @@ jQuery(function ($) {
     setStatus('Sending payment...');
     const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
 
-    const change = getChangeToken(utMeltRes, tokenWallet.mint.mintUrl);
-    if (change) {
-      rememberChangeTokens([change]);
-      void run(() => checkOrderStatus([change]));
-    }
-
+    const changeProofs = Array.isArray(utMeltRes?.change) ? utMeltRes.change : [];
+    void saveProofs(changeProofs, tokenWallet, 'untrusted_melt_change');
     setStatus('Waiting for payment confirmation...');
   }
 
@@ -585,12 +620,8 @@ jQuery(function ($) {
       // ignore
     }
 
-    const change = getChangeToken(meltRes, w.mint.mintUrl);
-    if (change) {
-      rememberChangeTokens([change]);
-      toastr.info('Confirming melt + saving change!');
-      void run(() => checkOrderStatus([change]));
-    }
+    const changeProofs = Array.isArray(meltRes?.change) ? meltRes.change : [];
+    void saveProofs(changeProofs, w, 'vendor_melt_change');
 
     setStatus('Confirming payment...');
     void run(() => pollOrderStatus(12, 1200));

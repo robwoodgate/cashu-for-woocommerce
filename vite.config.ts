@@ -6,7 +6,7 @@ export default defineConfig({
 			entry: 'src/ts/checkout.ts',
 			name: 'CashuCheckout',
 			formats: ['iife'],
-			fileName: () => 'cashu-checkout.js',
+			fileName: () => 'checkout.js',
 		},
 		outDir: 'assets/dist',
 	},
