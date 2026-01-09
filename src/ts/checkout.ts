@@ -280,7 +280,7 @@ jQuery(function ($) {
     void renderQr();
     void startMintQuoteWatcher();
     void startMeltPaidWatcher();
-    void run(() => checkOrderStatus());
+    void run(() => checkOrderStatus()); // In case already paid
   }
 
   async function renderQr(): Promise<void> {
@@ -632,26 +632,18 @@ jQuery(function ($) {
   // has confirmed lightning payment
   // ------------------------------
 
-  async function checkOrderStatus(
-    extraChangeTokens: string[] = [],
-  ): Promise<ConfirmPaidResponse | null> {
+  async function checkOrderStatus(): Promise<ConfirmPaidResponse | null> {
     const restRoot = String(window.cashu_wc?.rest_root ?? '');
     const route = String(window.cashu_wc?.confirm_route ?? '');
     if (!restRoot || !route) return null;
 
     const endpoint = restRoot.replace(/\/?$/, '/') + route.replace(/^\//, '');
 
-    const stored = loadJson<string[]>(ls.change) ?? [];
-    const allChange = Array.from(
-      new Set([...stored, ...extraChangeTokens.map(String)]),
-    ).filter(Boolean);
-
     const payload: any = {
       order_id: data.orderId,
       order_key: data.orderKey,
       quote_id: data.quoteId,
     };
-    if (allChange.length > 0) payload.change_tokens = allChange;
 
     try {
       const res = await fetch(endpoint, {
