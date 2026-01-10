@@ -53,15 +53,10 @@ type StoredMintQuote = {
   expiry?: number | null;
 };
 
-type ChangeKind = 'untrusted_melt_change' | 'vendor_melt_change';
-
 type ChangeItem = {
-  kind: ChangeKind;
   mint: string;
   token: string;
   amount: number;
-  fees: number;
-  dust: boolean;
 };
 
 type ChangePayload = {
@@ -337,28 +332,24 @@ jQuery(function ($) {
     }
   }
 
-  async function saveProofs(
-    changeProofs: Proof[],
-    wallet: Wallet,
-    kind: ChangeKind,
-  ): Promise<void> {
+  async function saveProofs(changeProofs: Proof[], wallet: Wallet): Promise<void> {
     if (changeProofs.length < 1) {
       return;
     }
     const changeAmt = sumProofs(changeProofs);
     const changeFees = wallet.getFeesForProofs(changeProofs);
+    if (changeAmt <= changeFees) {
+      return; // dust
+    }
     const tokenStr = getEncodedTokenV4({
       mint: wallet.mint.mintUrl,
       proofs: changeProofs,
       unit: 'sat',
     });
     rememberChangeItem({
-      kind: kind,
       mint: wallet.mint.mintUrl,
       token: tokenStr,
       amount: changeAmt,
-      fees: changeFees,
-      dust: changeAmt <= changeFees,
     });
   }
 
@@ -440,7 +431,7 @@ jQuery(function ($) {
     const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
 
     const changeProofs = Array.isArray(utMeltRes?.change) ? utMeltRes.change : [];
-    void saveProofs(changeProofs, tokenWallet, 'untrusted_melt_change');
+    void saveProofs(changeProofs, tokenWallet);
     setStatus('Waiting for payment confirmation...');
   }
 
@@ -621,7 +612,7 @@ jQuery(function ($) {
     }
 
     const changeProofs = Array.isArray(meltRes?.change) ? meltRes.change : [];
-    void saveProofs(changeProofs, w, 'vendor_melt_change');
+    void saveProofs(changeProofs, w);
 
     setStatus('Confirming payment...');
     void run(() => pollOrderStatus(12, 1200));

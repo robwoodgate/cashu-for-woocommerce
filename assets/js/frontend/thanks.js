@@ -11,13 +11,7 @@
     }
   }
 
-  function labelKind(k) {
-    if (k === 'untrusted_melt_change') return 'Change From Your Token';
-    if (k === 'vendor_melt_change') return 'Unspent Lightning Fee Reserve';
-    return 'Change';
-  }
-
-  function copyText(text) {
+  async function copyText(text) {
     if (!text) return Promise.resolve(false);
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -99,7 +93,6 @@
 				<div class="cashu-change-left">
 					<div class="cashu-change-label"></div>
 					<div class="cashu-change-meta"></div>
-					${it && it.dust ? '<div class="cashu-change-note">May be too small to spend on its own due to per proof fees.</div>' : ''}
 				</div>
 				<div class="cashu-change-btns">
 					<button type="button" class="cashu-change-btn cashu-change-copy" data-action="copy" data-idx="${idx}">Copy</button>
@@ -109,19 +102,11 @@
 			<pre class="cashu-change-token" hidden></pre>
 		`;
     const labelEl = $('.cashu-change-label', item);
-    labelEl.textContent = labelKind(it && it.kind);
-    if (it && it.dust) {
-      // Dust badge
-      const badge = document.createElement('span');
-      badge.className = 'cashu-change-badge';
-      badge.textContent = 'Dust';
-      labelEl.appendChild(badge);
-    }
+    labelEl.textContent = `Mint: ${mintHost(it && it.mint)}`;
     // Token description
     const metaEl = $('.cashu-change-meta', item);
     const amount = Number.isFinite(it && it.amount) ? it.amount : 0;
-    const fees = Number.isFinite(it && it.fees) ? it.fees : 0;
-    metaEl.textContent = `Mint: ${mintHost(it && it.mint)} · Amount: ${amount} sats · Fees: ${fees} sats`;
+    metaEl.textContent = `Amount: ₿${amount}`;
     const tokenEl = $('.cashu-change-token', item);
     tokenEl.textContent = String(it && it.token ? it.token : '');
     list.appendChild(item);
