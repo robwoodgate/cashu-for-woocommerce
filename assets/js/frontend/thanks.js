@@ -93,6 +93,7 @@
 				<div class="cashu-change-left">
 					<div class="cashu-change-label"></div>
 					<div class="cashu-change-meta"></div>
+					${it && it.dust ? '<div class="cashu-change-note">May be too small to spend on its own due to per proof fees.</div>' : ''}
 				</div>
 				<div class="cashu-change-btns">
 					<button type="button" class="cashu-change-btn cashu-change-copy" data-action="copy" data-idx="${idx}">Copy</button>
@@ -102,11 +103,19 @@
 			<pre class="cashu-change-token" hidden></pre>
 		`;
     const labelEl = $('.cashu-change-label', item);
-    labelEl.textContent = `Mint: ${mintHost(it && it.mint)}`;
+    labelEl.textContent = it.kind ?? 'Change';
+    if (it && it.dust) {
+      // Dust badge
+      const badge = document.createElement('span');
+      badge.className = 'cashu-change-badge';
+      badge.textContent = 'Dust';
+      labelEl.appendChild(badge);
+    }
+    // labelEl.textContent = `Mint: ${mintHost(it && it.mint)}`;
     // Token description
     const metaEl = $('.cashu-change-meta', item);
     const amount = Number.isFinite(it && it.amount) ? it.amount : 0;
-    metaEl.textContent = `Amount: ₿${amount}`;
+    metaEl.textContent = `Amount: ₿${amount} - ${mintHost(it && it.mint)}`;
     const tokenEl = $('.cashu-change-token', item);
     tokenEl.textContent = String(it && it.token ? it.token : '');
     list.appendChild(item);

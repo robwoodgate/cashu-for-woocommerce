@@ -535,15 +535,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
 						</div>
 					</dl>
-					<div class="cashu-feenote">
-					<?php
-					printf(
-						/* translators: %1$s: Mint hostname */
-						esc_html__( 'Fees will be lowest if you use: %1$s', 'cashu-for-woocommerce' ),
-						'<strong>' . esc_html( $trusted_mint ) . '</strong>'
-					);
-					?>
-					</div>
 				</div>
 
 				<button
@@ -557,13 +548,13 @@ class CashuGateway extends \WC_Payment_Gateway {
 					<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 					</svg>
 				</button>
-				<div id="cashu-status" class="cashu-status" role="status" aria-live="polite">
-					<?php
-					esc_html_e( 'Scan the QR code or paste a Cashu token.', 'cashu-for-woocommerce' )
-					?>
-				</div>
 			</div>
 			<div class="cashu-box">
+				<div id="cashu-status" class="cashu-status" role="status" aria-live="polite">
+					<?php
+					esc_html_e( 'Status:  Waiting for payment...', 'cashu-for-woocommerce' )
+					?>
+				</div>
 				<div class="cashu-qr-wrap">
 					<div class="cashu-qr" id="cashu-qr" data-cashu-qr>
 						<!-- JS renders QR here, canvas or img is fine -->
@@ -589,6 +580,15 @@ class CashuGateway extends \WC_Payment_Gateway {
 						<?php echo esc_html__( 'Pay', 'cashu-for-woocommerce' ); ?>
 					</button>
 				</form>
+				<div class="cashu-feenote">
+					<?php
+					printf(
+						/* translators: %1$s: Mint hostname */
+						esc_html__( 'Tokens accepted from any mint, but fees will be lowest if you use: %1$s', 'cashu-for-woocommerce' ),
+						'<strong>' . esc_html( $trusted_mint ) . '</strong>'
+					);
+					?>
+				</div>
 			</div>
 			<script>
 				jQuery(function ($) {

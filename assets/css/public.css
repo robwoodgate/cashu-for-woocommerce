@@ -4,6 +4,7 @@
   --cashu-border: rgb(0 0 0 / 12%);
   --cashu-muted: rgb(0 0 0 / 62%);
   --cashu-surface: #fff;
+  --cashu-status: #254a6e;
   --cashu-warning: #a00;
 
   background: var(--cashu-surface);
@@ -45,6 +46,7 @@
   color: var(--cashu-muted);
   font-size: 0.9rem;
   margin: 12px 0 8px;
+  text-align: center;
 }
 
 .payment-details {
@@ -214,12 +216,13 @@
 }
 
 .cashu-status {
-  background: var(--cashu-warning);
-  border-radius: 9999px;
+  background: var(--cashu-status);
+  border-radius: 16px;
   color: var(--cashu-surface);
   font-size: 1rem;
   font-weight: 750;
-  margin: 12px 0 0;
+  margin: 12px 0;
+  opacity: 0.8;
   padding: 7px 8px;
   text-align: center;
 }
@@ -249,6 +252,7 @@
   --cashu-border: rgb(0 0 0 / 12%);
   --cashu-muted: rgb(0 0 0 / 62%);
   --cashu-surface: #fff;
+  --cashu-warning: #a00;
 
   background: var(--cashu-surface);
   border: 1px solid var(--cashu-border);
@@ -292,7 +296,8 @@
 }
 
 .cashu-change-dismiss:hover {
-  color: #111;
+  color: var(--cashu-warning);
+  font-weight: bolder;
 }
 
 .cashu-change-lead {

@@ -56,6 +56,7 @@ type ChangeItem = {
   mint: string;
   token: string;
   amount: number;
+  kind: string;
 };
 
 type ChangePayload = {
@@ -220,7 +221,10 @@ jQuery(function ($) {
   const $btn = $form.find('button[type="submit"]');
   const $status = $scope.find('.cashu-status');
   const $qr = $scope.find('[data-cashu-qr]');
-  const setStatus = (msg: string) => $status.text(msg);
+  const setStatus = (msg: string, isError: boolean = false) => {
+    const color = isError ? 'var(--cashu-warning)' : 'var(--cashu-status)';
+    $status.text(msg).css('background-color', color);
+  };
   const lock = (locked: boolean) => {
     $btn.prop('disabled', locked);
     $input.prop('disabled', locked);
@@ -230,7 +234,7 @@ jQuery(function ($) {
     e.preventDefault();
     const token = getToken();
     if (!token) {
-      setStatus('Paste a Cashu token first.');
+      setStatus('Paste a Cashu token first...', true);
       return;
     }
     void run(() => payFromToken(token), { user: true });
@@ -265,7 +269,7 @@ jQuery(function ($) {
 
   // Start async processes (don’t block UI)
   void startAsyncProcesses().catch(() => {
-    setStatus('Could not prepare the invoice, please refresh and try again.');
+    setStatus('Could not prepare the invoice, please refresh and try again', true);
   });
 
   // ------------------------------
@@ -304,7 +308,7 @@ jQuery(function ($) {
     const isUser = !!opts.user;
 
     if (isUser && userPending > 0) {
-      setStatus('Payment already in progress');
+      setStatus('Payment already in progress', true);
       return Promise.resolve(undefined);
     }
 
@@ -315,7 +319,7 @@ jQuery(function ($) {
 
     const p = chain.then(fn).catch((e) => {
       const msg = getErrorMessage(e);
-      setStatus(msg);
+      setStatus(msg, true);
       return undefined as unknown as T;
     });
 
@@ -346,10 +350,14 @@ jQuery(function ($) {
       proofs: changeProofs,
       unit: 'sat',
     });
+    const kind = sameMint(wallet.mint.mintUrl, data.trustedMint)
+      ? 'Change From Network Fee Reserve'
+      : 'Change From Your Token';
     rememberChangeItem({
       mint: wallet.mint.mintUrl,
       token: tokenStr,
       amount: changeAmt,
+      kind,
     });
   }
 
@@ -375,18 +383,18 @@ jQuery(function ($) {
       meta = getTokenMetadata(token);
     } catch (e) {
       console.error(getErrorMessage(e));
-      setStatus('That token does not look valid.');
+      setStatus('That token does not look valid', true);
       return;
     }
 
     const tokenMint = String(meta.mint ?? '').trim();
     const tokenUnit = String(meta.unit ?? 'sat');
     if (!tokenMint || meta.amount === 0) {
-      setStatus('Token has no spendable proofs.');
+      setStatus('Token has no spendable proofs', true);
       return;
     }
     if (tokenUnit !== 'sat') {
-      setStatus('This checkout expects sat denominated tokens.');
+      setStatus('This checkout expects sat denominated tokens', true);
       return;
     }
 
@@ -397,7 +405,7 @@ jQuery(function ($) {
     let proofs = decoded.proofs;
 
     if (!Array.isArray(proofs) || proofs.length === 0) {
-      setStatus('Token has no usable proofs.');
+      setStatus('Token has no usable proofs', true);
       return;
     }
 
@@ -422,7 +430,8 @@ jQuery(function ($) {
 
     if (amount < required) {
       setStatus(
-        `Token amount (${amount}) is too small. Please paste a token of at least ${required} sats to cover your mint’s fees (${meltFees}).`,
+        `Token amount (₿${amount}) is too small. At least ₿${required} is required to cover your mint's fees (₿${meltFees})`,
+        true,
       );
       return;
     }
@@ -650,7 +659,7 @@ jQuery(function ($) {
       }
 
       if (json?.state === 'EXPIRED') {
-        setStatus('This payment quote has expired.');
+        setStatus('This payment quote has expired', true);
         await delay(2000);
         window.location.assign(String(data.returnUrl)); // order received page
       }
