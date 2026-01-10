@@ -4,6 +4,7 @@
   --cashu-border: rgb(0 0 0 / 12%);
   --cashu-muted: rgb(0 0 0 / 62%);
   --cashu-surface: #fff;
+  --cashu-warning: #a00;
 
   background: var(--cashu-surface);
   border: 1px solid var(--cashu-border);
@@ -213,9 +214,13 @@
 }
 
 .cashu-status {
-  color: var(--cashu-muted);
+  background: var(--cashu-warning);
+  border-radius: 9999px;
+  color: var(--cashu-surface);
   font-size: 1rem;
+  font-weight: 750;
   margin: 12px 0 0;
+  padding: 7px 8px;
   text-align: center;
 }
 

@@ -9,7 +9,6 @@ import {
   MeltQuoteBolt11Response,
 } from '@cashu/cashu-ts';
 import { copyTextToClipboard, doConfettiBomb, delay, getErrorMessage } from './utils';
-import toastr from 'toastr';
 
 // ------------------------------
 // Types
@@ -68,9 +67,6 @@ type ChangePayload = {
 // ------------------------------
 // Helpers
 // ------------------------------
-
-// Set toastr options
-toastr.options = { positionClass: 'toast-bottom-center' };
 
 // Create AbortController for websocket management
 const ac = new AbortController();
@@ -262,6 +258,11 @@ jQuery(function ($) {
     recovery: 'cashu_wc_recovery',
   };
 
+  // Clear old change
+  try {
+    sessionStorage.removeItem(ls.change);
+  } catch {}
+
   // Start async processes (don’t block UI)
   void startAsyncProcesses().catch(() => {
     setStatus('Could not prepare the invoice, please refresh and try again.');
@@ -303,7 +304,7 @@ jQuery(function ($) {
     const isUser = !!opts.user;
 
     if (isUser && userPending > 0) {
-      toastr.error('Payment already in progress');
+      setStatus('Payment already in progress');
       return Promise.resolve(undefined);
     }
 
@@ -315,7 +316,6 @@ jQuery(function ($) {
     const p = chain.then(fn).catch((e) => {
       const msg = getErrorMessage(e);
       setStatus(msg);
-      if (isUser) toastr.error(msg);
       return undefined as unknown as T;
     });
 
@@ -374,7 +374,7 @@ jQuery(function ($) {
     try {
       meta = getTokenMetadata(token);
     } catch (e) {
-      toastr.error(getErrorMessage(e));
+      console.error(getErrorMessage(e));
       setStatus('That token does not look valid.');
       return;
     }
@@ -450,7 +450,6 @@ jQuery(function ($) {
 
       const wallet = await trustedWalletP;
       const mq = await wallet.createMintQuoteBolt11(data.expectedPaySats);
-      toastr.info('created mint quote');
 
       const store: StoredMintQuote = {
         mint: data.trustedMint,
@@ -602,7 +601,6 @@ jQuery(function ($) {
     const w = trustedWallet;
     const quote = await w.checkMeltQuoteBolt11(data.quoteId);
     const meltRes = await w.meltProofsBolt11(quote, proofs);
-    toastr.info('Melted proofs to pay invoice.');
 
     // Spent, so clear recovery
     try {
@@ -653,7 +651,6 @@ jQuery(function ($) {
 
       if (json?.state === 'EXPIRED') {
         setStatus('This payment quote has expired.');
-        toastr.error('This payment quote has expired.');
         await delay(2000);
         window.location.assign(String(data.returnUrl)); // order received page
       }
@@ -667,7 +664,7 @@ jQuery(function ($) {
   async function pollOrderStatus(attempts: number, waitMs: number): Promise<void> {
     for (let i = 0; i < attempts; i++) {
       await delay(waitMs);
-      toastr.info('Confirming melt - poll #' + i);
+      console.log('Confirming melt - poll #' + i);
       const r = await checkOrderStatus();
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
     }
