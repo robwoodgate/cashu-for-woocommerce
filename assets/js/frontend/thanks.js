@@ -37,12 +37,6 @@
   const root = document.getElementById('cashu-change-root');
   if (!root) return;
   const storageKey = 'cashu_wc_change';
-  const orderId = root.getAttribute('data-order-id') || '';
-  const orderKey = root.getAttribute('data-order-key') || '';
-  if (!orderId || !orderKey) {
-    root.remove();
-    return;
-  }
 
   // Get change from session storage
   let payload = null;
@@ -70,7 +64,7 @@
   root.classList.add('cashu-change');
   root.innerHTML = `
 		<div class="cashu-change-head">
-			<div class="cashu-change-title">Your change</div>
+			<div class="cashu-change-title">Your Cashu change</div>
 			<button type="button" class="cashu-change-dismiss">Dismiss</button>
 		</div>
 		<div class="cashu-change-lead">
@@ -78,7 +72,7 @@
 		</div>
 		<div class="cashu-change-list"></div>
 		<div class="cashu-change-tip">
-			Tip: paste the token into your Cashu wallet soon, tokens are bearer value.
+			<strong>Important:</strong> save your change now, we do not store tokens on our server.
 		</div>
 	`;
 

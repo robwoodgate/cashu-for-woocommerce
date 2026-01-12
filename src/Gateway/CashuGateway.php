@@ -57,10 +57,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 			}
 		);
 
-		// Enqueue scripts / webhooks
+		// Enqueue gateway scripts / pages
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'woocommerce_receipt_' . $this->id, array( $this, 'receipt_page' ) );
 		add_action( 'woocommerce_thankyou_' . $this->id, array( $this, 'thankyou_page' ), 20 );
+		add_action( 'woocommerce_after_my_account', array( $this, 'render_change_section' ), 20 );
 	}
 
 	/**
@@ -100,7 +101,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 	}
 
 	/**
-	 * Enqueue checkout script on pages where it is needed.
+	 * Register gateway scripts / styles
 	 */
 	public function enqueue_scripts() {
 		// QR Code
@@ -116,7 +117,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// This is the CSS, the script is imported via npm into checkout.ts
 		wp_register_style( 'toastr', CASHU_WC_PLUGIN_URL . 'assets/css/toastr.min.css', array(), CASHU_WC_VERSION, false ); // NB: head
 
-		// Enqueue and localize
+		// Main checkout
 		wp_register_script(
 			'cashu-checkout',
 			CASHU_WC_PLUGIN_URL . 'assets/dist/checkout.js',
@@ -124,15 +125,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 			CASHU_WC_VERSION,
 			true
 		);
-
-		wp_register_script(
-			'cashu-thanks',
-			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/thanks.js',
-			array( 'jquery' ),
-			CASHU_WC_VERSION,
-			true
-		);
-
 		wp_localize_script(
 			'cashu-checkout',
 			'cashu_wc',
@@ -145,6 +137,16 @@ class CashuGateway extends \WC_Payment_Gateway {
 			)
 		);
 
+		// Change box
+		wp_register_script(
+			'cashu-thanks',
+			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/thanks.js',
+			array( 'jquery' ),
+			CASHU_WC_VERSION,
+			true
+		);
+
+		// Gateway CSS
 		wp_register_style(
 			'cashu-public',
 			CASHU_WC_PLUGIN_URL . 'assets/css/public.css',
@@ -337,7 +339,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Setup request
 		$endpoint = $this->trusted_mint . '/v1/melt/quote/bolt11';
 		$args     = array(
-			'timeout' => 15,
+			'timeout' => 10,
 			'headers' => array(
 				'Content-Type' => 'application/json',
 			),
@@ -374,7 +376,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 	/**
 	 * Get the maximum input_fee_ppk for active "sat" unit keysets from the trusted mint.
-	 * Result is cached per mint URL for 24 hours.
+	 * Result is cached per mint URL for 1 hour.
 	 */
 	private function get_max_input_fee_ppk(): int {
 		// Return cached if available
@@ -389,7 +391,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$res      = wp_remote_get(
 			$endpoint,
 			array(
-				'timeout' => 15,
+				'timeout' => 10,
 				'headers' => array(
 					'Accept'       => 'application/json',
 					'Content-Type' => 'application/json',
@@ -415,19 +417,18 @@ class CashuGateway extends \WC_Payment_Gateway {
 				$json['keysets'],
 				fn( $ks ) => is_array( $ks )
 					&& ( $ks['unit'] ?? '' ) === 'sat'
-					&& ! empty( $ks['active'] )
 					&& isset( $ks['input_fee_ppk'] )
 					&& is_numeric( $ks['input_fee_ppk'] )
 			),
 			'input_fee_ppk'
 		);
 		if ( empty( $fees ) ) {
-			throw new \RuntimeException( 'No active sat keysets with input_fee_ppk found.' );
+			throw new \RuntimeException( 'No sat keysets with input_fee_ppk found.' );
 		}
 
 		// Cache and return
-		$max_fee = (int) max( $fees );
-		set_transient( $transient_key, $max_fee, DAY_IN_SECONDS );
+		$max_fee = absint( max( $fees ) );
+		set_transient( $transient_key, $max_fee, HOUR_IN_SECONDS );
 		return $max_fee;
 	}
 
@@ -445,19 +446,30 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 	/**
 	 * Estimate input fee reserve in sats for paying a given amount using an
-	 * optimal split, but using the maximum input_fee_ppk across active sat keysets.
+	 * optimal split, but using the maximum input_fee_ppk across sat keysets.
 	 *
-	 * It is an estimate, which should be fine for newly minted tokens (eg via QR)
-	 * but will be too low for badly split tokens (eg all 1 sat proofs).
+	 * Iterates because covering a fee adds proofs, which increases the fee.
 	 */
 	private function estimate_input_fee_sats( int $amount_sats ): int {
 		$ppk    = $this->get_max_input_fee_ppk();
 		$proofs = $this->proof_count_optimal_split( $amount_sats );
 
-		$sum_fees_msat = $proofs * $ppk;
-		return intdiv( $sum_fees_msat + 999, 1000 );
-	}
+		// Set lower bound: fee for paying the amount of proofs
+		// plus a "1 proof" ppk fee buffer (ie a rounded up ppk fee).
+		$buffer   = intdiv( $ppk + 999, 1000 );
+		$fee_sats = intdiv( ( $proofs * $ppk ) + 999, 1000 ) + $buffer;
 
+		// Find the optimal fee that covers "fee-fees" too
+		while ( true ) {
+			$proofs_for_fee    = $this->proof_count_optimal_split( $fee_sats );
+			$total_proofs      = $proofs + $proofs_for_fee;
+			$required_fee_sats = intdiv( ( $total_proofs * $ppk ) + 999, 1000 );
+			if ( $required_fee_sats <= $fee_sats ) {
+				return $fee_sats;
+			}
+			++$fee_sats;
+		}
+	}
 
 	public function receipt_page( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -535,6 +547,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
 						</div>
 					</dl>
+					<div class="payment-row">
+						<?php
+						echo esc_html__( 'Change will be given if network cost is less than estimated.', 'cashu-for-woocommerce' );
+						?>
+					</div>
 				</div>
 
 				<button
@@ -552,7 +569,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			<div class="cashu-box">
 				<div id="cashu-status" class="cashu-status" role="status" aria-live="polite">
 					<?php
-					esc_html_e( 'Status:  Waiting for payment...', 'cashu-for-woocommerce' )
+					esc_html_e( 'Status: Waiting for payment...', 'cashu-for-woocommerce' )
 					?>
 				</div>
 				<div class="cashu-qr-wrap">
@@ -611,6 +628,9 @@ class CashuGateway extends \WC_Payment_Gateway {
 		<?php
 	}
 
+	/**
+	 * Show change if the order was a Cashu one.
+	 */
 	public function thankyou_page( $order_id ) {
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
@@ -620,14 +640,17 @@ class CashuGateway extends \WC_Payment_Gateway {
 			return;
 		}
 
+		$this->render_change_section();
+	}
+
+	/**
+	 * Renders the change
+	 */
+	public function render_change_section() {
 		wp_enqueue_style( 'cashu-public' );
 		wp_enqueue_script( 'cashu-thanks' );
 
-		echo '<div
-	    id="cashu-change-root"
-	    data-order-id="' . esc_attr( (string) $order_id ) . '"
-	    data-order-key="' . esc_attr( $order->get_order_key() ) . '"
-	  ></div>';
+		echo '<div id="cashu-change-root"></div>';
 	}
 
 	public function is_available(): bool {

@@ -7,6 +7,8 @@ import {
   MeltQuoteState,
   TokenMetadata,
   MeltQuoteBolt11Response,
+  MeltProofsResponse,
+  ConsoleLogger,
 } from '@cashu/cashu-ts';
 import { copyTextToClipboard, doConfettiBomb, delay, getErrorMessage } from './utils';
 
@@ -40,7 +42,7 @@ type RootData = {
   returnUrl: string;
   expectedPaySats: number; // headline amount user must cover (invoice + fee_reserve)
   quoteId: string; // melt quote id (vendor payment)
-  quoteExpiry: number; // unix seconds, may be 0
+  quoteExpiryMs: number; // milliseconds, may be 0
   trustedMint: string;
 };
 
@@ -57,6 +59,7 @@ type ChangeItem = {
   token: string;
   amount: number;
   kind: string;
+  dust: boolean;
 };
 
 type ChangePayload = {
@@ -83,7 +86,7 @@ function getWalletCached(mintUrl: string, unit: CurrencyUnit = 'sat'): Promise<W
   if (existing) return existing;
   // Start loading wallet (IIFE)
   const p = (async () => {
-    const w = new Wallet(mintUrl, { unit });
+    const w = new Wallet(mintUrl, { unit, logger: new ConsoleLogger('debug') });
     await w.loadMint();
     return w;
   })();
@@ -102,7 +105,7 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
   const returnUrl = String($root.data('return-url') ?? '');
   const expectedPaySats = Number($root.data('pay-amount-sats') ?? 0);
   const quoteId = String($root.data('melt-quote-id') ?? '');
-  const quoteExpiry = Number($root.data('spot-quote-expiry') ?? 0);
+  const quoteExpiryMs = Number($root.data('spot-quote-expiry') ?? 0) * 1000;
   const trustedMint = String($root.data('trusted-mint') ?? '');
 
   if (
@@ -124,7 +127,7 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
     returnUrl,
     expectedPaySats,
     quoteId,
-    quoteExpiry,
+    quoteExpiryMs,
     trustedMint,
   };
 }
@@ -278,9 +281,21 @@ jQuery(function ($) {
 
   async function startAsyncProcesses(): Promise<void> {
     void renderQr();
+    void pollOrderStatus();
     void startMintQuoteWatcher();
     void startMeltPaidWatcher();
-    void run(() => checkOrderStatus()); // In case already paid
+    const token = localStorage.getItem(ls.recovery);
+    if (token) {
+      payFromToken(token).catch((e) => {
+        console.error(e);
+        setStatus(
+          'Payment failed. Please copy the new token from the form input below.',
+          true,
+        );
+        $input.val(token);
+        localStorage.removeItem(ls.recovery);
+      });
+    }
   }
 
   async function renderQr(): Promise<void> {
@@ -342,9 +357,6 @@ jQuery(function ($) {
     }
     const changeAmt = sumProofs(changeProofs);
     const changeFees = wallet.getFeesForProofs(changeProofs);
-    if (changeAmt <= changeFees) {
-      return; // dust
-    }
     const tokenStr = getEncodedTokenV4({
       mint: wallet.mint.mintUrl,
       proofs: changeProofs,
@@ -358,6 +370,7 @@ jQuery(function ($) {
       token: tokenStr,
       amount: changeAmt,
       kind,
+      dust: changeAmt <= changeFees,
     });
   }
 
@@ -377,7 +390,7 @@ jQuery(function ($) {
 
   async function payFromToken(token: string): Promise<void> {
     setStatus('Checking token...');
-
+    await delay(500);
     let meta: TokenMetadata;
     try {
       meta = getTokenMetadata(token);
@@ -399,7 +412,7 @@ jQuery(function ($) {
     }
 
     setStatus('Connecting to mint...');
-
+    await delay(500);
     const tokenWallet = await getWalletCached(tokenMint, 'sat');
     const decoded = tokenWallet.decodeToken(token);
     let proofs = decoded.proofs;
@@ -423,8 +436,8 @@ jQuery(function ($) {
     const fees = tokenWallet.getFeesForProofs(proofs);
 
     setStatus('Calculating your mint’s fees...');
+    await delay(500);
     const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mq.request);
-
     const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
     const meltFees = utMeltQuote.fee_reserve + fees;
 
@@ -436,7 +449,8 @@ jQuery(function ($) {
       return;
     }
 
-    setStatus('Sending payment...');
+    setStatus('Sending payment to our mint...');
+    await delay(500);
     const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
 
     const changeProofs = Array.isArray(utMeltRes?.change) ? utMeltRes.change : [];
@@ -496,14 +510,14 @@ jQuery(function ($) {
 
     // Websocket is the primary watcher
     const ws = async () => {
-      const expiryMs = data.quoteExpiry * 1000 - Date.now();
+      const expiryMs = data.quoteExpiryMs - Date.now();
       const timeoutMs = Math.max(10_000, expiryMs); // min 10s
       await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
     };
 
     // Fallback: poll every 3s until paid or time runs out
     const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < data.quoteExpiry) {
+      while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
         const q = await wallet.checkMintQuoteBolt11(mq.quote);
         if (q.state === 'PAID') return; // promise: success
         await delay(3000);
@@ -529,14 +543,12 @@ jQuery(function ($) {
     if (mintHandleP) return mintHandleP;
 
     mintHandleP = (async () => {
-      setStatus('Payment detected, finalising...');
+      setStatus('Payment received by our mint...');
+      await delay(500);
       const wallet = await trustedWalletP;
-
       const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
-
       deleteJson(ls.mq);
       mqP = null;
-
       await meltTrustedProofsToVendor(mintedProofs, wallet);
     })();
 
@@ -560,14 +572,14 @@ jQuery(function ($) {
 
     // Websocket is the primary watcher
     const ws = async () => {
-      const expiryMs = data.quoteExpiry * 1000 - Date.now();
+      const expiryMs = Date.now() - data.quoteExpiryMs;
       const timeoutMs = Math.max(10_000, expiryMs); // min 10s
       await wallet.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
     };
 
     // Fallback: poll every 3s until paid or time runs out
     const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < data.quoteExpiry) {
+      while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
         const q: MeltQuoteBolt11Response = await wallet.checkMeltQuoteBolt11(
           data.quoteId,
         );
@@ -588,7 +600,8 @@ jQuery(function ($) {
     }
 
     // success!
-    setStatus('Payment detected, finalising...');
+    setStatus('Payment complete!');
+    await delay(1000);
     void run(() => checkOrderStatus());
   }
 
@@ -596,33 +609,33 @@ jQuery(function ($) {
     proofs: Proof[],
     trustedWallet: Wallet,
   ): Promise<void> {
-    // Backup proofs before melt as they may have been minted by us
-    // in the QR Code or untrusted mint payment flows
-    try {
-      const rec = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
-      localStorage.setItem(ls.recovery, rec);
-    } catch {
-      // ignore
-    }
+    // Backup proofs as a token before melt as they may have been minted
+    // by us in the QR Code or untrusted mint payment flows
+    const token = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
+    let meltRes: MeltProofsResponse<MeltQuoteBolt11Response> | undefined;
 
     setStatus('Paying invoice...');
 
-    const w = trustedWallet;
-    const quote = await w.checkMeltQuoteBolt11(data.quoteId);
-    const meltRes = await w.meltProofsBolt11(quote, proofs);
-
-    // Spent, so clear recovery
     try {
+      localStorage.setItem(ls.recovery, token);
+      const quote = await trustedWallet.checkMeltQuoteBolt11(data.quoteId);
+      console.log({ token });
+      console.log('proofs', proofs);
+      console.log('mtv quote', quote);
+      meltRes = await trustedWallet.meltProofsBolt11(quote, proofs);
+    } catch (e) {
+      console.log(e);
+      $input.val(token);
+      setStatus(e, true);
+      return;
+    } finally {
       localStorage.removeItem(ls.recovery);
-    } catch {
-      // ignore
     }
 
     const changeProofs = Array.isArray(meltRes?.change) ? meltRes.change : [];
-    void saveProofs(changeProofs, w);
+    void saveProofs(changeProofs, trustedWallet);
 
     setStatus('Confirming payment...');
-    void run(() => pollOrderStatus(12, 1200));
   }
 
   // ------------------------------
@@ -670,11 +683,16 @@ jQuery(function ($) {
     }
   }
 
-  async function pollOrderStatus(attempts: number, waitMs: number): Promise<void> {
-    for (let i = 0; i < attempts; i++) {
-      await delay(waitMs);
-      console.log('Confirming melt - poll #' + i);
-      const r = await checkOrderStatus();
+  async function pollOrderStatus(): Promise<void> {
+    // Already expired?
+    if (ac.signal.aborted || Date.now() > data.quoteExpiryMs) {
+      window.location.assign(String(data.returnUrl)); // order received page
+      return;
+    }
+    // Start polling
+    while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
+      await delay(3000);
+      const r = await run(() => checkOrderStatus());
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
     }
   }

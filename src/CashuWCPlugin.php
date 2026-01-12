@@ -284,6 +284,10 @@ final class CashuWCPlugin {
 			return $totals;
 		}
 
+		if ( ! $order->is_paid() ) {
+			return $totals;
+		}
+
 		$symbol = defined( 'CASHU_WC_BIP177_SYMBOL' ) ? CASHU_WC_BIP177_SYMBOL : '';
 
 		$totals['cashu_expected_amount'] = array(
