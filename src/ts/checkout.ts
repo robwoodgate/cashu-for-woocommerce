@@ -640,12 +640,23 @@ jQuery(function ($) {
         doConfettiBomb();
         await delay(2000);
         window.location.assign(String(json.redirect ?? data.returnUrl));
+        return json;
       }
 
       if (json?.state === 'EXPIRED') {
-        setStatus('This payment quote has expired', true);
+        setStatus('Invoice has expired', true);
         await delay(2000);
         window.location.assign(String(data.returnUrl)); // order received page
+        return json;
+      }
+      if (json?.expiry) {
+        const msg = 'Invoice expires in: ' + formatCountdown(json.expiry);
+        const seconds = json.expiry - Date.now() / 1000;
+        if (seconds < 60) {
+          setStatus(msg, true);
+        } else if (seconds < 300) {
+          setStatus(msg);
+        }
       }
 
       return json ?? null;
@@ -661,13 +672,33 @@ jQuery(function ($) {
       return;
     }
     // Start polling
-    while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
+    while (!ac.signal.aborted && Date.now() <= data.quoteExpiryMs) {
       await delay(3000);
       const r = await run(() => checkOrderStatus());
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
     }
     // Final check for redirect
-    await delay(3000);
+    await delay(500);
     await run(() => checkOrderStatus());
+  }
+
+  /**
+   * Returns "MM:SS" remaining until a target Unix timestamp (in seconds).
+   * If the time has passed, returns "00:00".
+   */
+  function formatCountdown(
+    targetUnixSeconds: number,
+    nowMs: number = Date.now(),
+  ): string {
+    const remainingMs = targetUnixSeconds * 1000 - nowMs;
+    const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+
+    return `${mm}:${ss}`;
   }
 });

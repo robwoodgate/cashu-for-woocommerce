@@ -108,14 +108,14 @@ final class ConfirmMeltQuoteController {
 		}
 
 		// Check Spot Quote Expiry
-		$spot_time = absint( $order->get_meta( '_cashu_spot_time', true ) );
-		$expiry    = $spot_time + CashuGateway::QUOTE_EXPIRY_SECS;
-		if ( time() > $expiry ) {
+		$spot_time   = absint( $order->get_meta( '_cashu_spot_time', true ) );
+		$spot_expiry = $spot_time + CashuGateway::QUOTE_EXPIRY_SECS;
+		if ( time() >= $spot_expiry ) {
 			return rest_ensure_response(
 				array(
 					'ok'     => true,
 					'state'  => 'EXPIRED',
-					'expiry' => $expiry,
+					'expiry' => $spot_expiry,
 				)
 			);
 		}
@@ -188,7 +188,7 @@ final class ConfirmMeltQuoteController {
 			array(
 				'ok'     => true,
 				'state'  => $state,
-				'expiry' => isset( $data['expiry'] ) ? (int) $data['expiry'] : null,
+				'expiry' => $spot_expiry,
 			)
 		);
 	}
