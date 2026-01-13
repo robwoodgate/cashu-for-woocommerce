@@ -590,12 +590,8 @@ jQuery(function ($) {
     try {
       localStorage.setItem(ls.recovery, token);
       const quote = await trustedWallet.checkMeltQuoteBolt11(data.quoteId);
-      console.log({ token });
-      console.log('proofs', proofs);
-      console.log('mtv quote', quote);
       meltRes = await trustedWallet.meltProofsBolt11(quote, proofs);
     } catch (e) {
-      console.log(e);
       $input.val(token);
       setStatus(e, true);
       return;
