@@ -7,6 +7,7 @@
 **Requires PHP:** 8.3  
 **Stable tag:** 0.1.0  
 **License:** MIT  
+**License URI:** https://github.com/robwoodgate/cashu-for-woocommerce/blob/main/license.txt  
 
 ## Description ##
 
