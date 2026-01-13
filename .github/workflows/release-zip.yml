@@ -1,0 +1,69 @@
+name: Build plugin zip and attach to release
+
+permissions:
+  contents: write
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-zip:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.release.prerelease == false }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Validate tag format (vX.X.X) and versions match
+        run: |
+          set -euo pipefail
+
+          TAG="${{ github.event.release.tag_name }}"
+          echo "Release tag: ${TAG}"
+
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must look like vX.X.X, for example v0.1.0"
+            exit 1
+          fi
+
+          TAG_VER="${TAG#v}"
+          PKG_VER="$(node -p "require('./package.json').version" | tr -d '\r')"
+          PLUGIN_VER="$(
+            grep -m1 -E '^[[:space:]]*\*?[[:space:]]*Version:[[:space:]]*' cashu-for-woocommerce.php \
+              | sed -E 's/^[[:space:]]*\*?[[:space:]]*Version:[[:space:]]*//' \
+              | tr -d '\r'
+          )"
+
+          echo "Tag version:           ${TAG_VER}"
+          echo "package.json version:  ${PKG_VER}"
+          echo "Plugin header version: ${PLUGIN_VER}"
+
+          [ "${TAG_VER}" = "${PKG_VER}" ] || { echo "Mismatch, tag vs package.json"; exit 1; }
+          [ "${TAG_VER}" = "${PLUGIN_VER}" ] || { echo "Mismatch, tag vs plugin header"; exit 1; }
+
+      - name: Ensure zip is available
+        run: |
+          command -v zip >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y zip)
+
+      - name: Build via build.sh
+        run: bash ./build.sh
+
+      - name: Upload zip to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cashu-for-woocommerce.zip
+          fail_on_unmatched_files: true
