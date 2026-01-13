@@ -12,7 +12,7 @@ use WC_Order;
 
 class CashuGateway extends \WC_Payment_Gateway {
 
-	private const QUOTE_EXPIRY_SECS = 900;  // 15 mins
+	public const QUOTE_EXPIRY_SECS = 900;  // 15 mins
 	/**
 	 * Trusted Mint.
 	 * @var string
@@ -110,7 +110,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/qrcode.min.js',
 			array( 'jquery' ),
 			CASHU_WC_VERSION,
-			true
+			false // head
 		);
 
 		// Main checkout
@@ -119,7 +119,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			CASHU_WC_PLUGIN_URL . 'assets/cashu/checkout.js',
 			array( 'jquery', 'cashu-qrcode' ),
 			CASHU_WC_VERSION,
-			true
+			false // head
 		);
 		wp_localize_script(
 			'cashu-checkout',

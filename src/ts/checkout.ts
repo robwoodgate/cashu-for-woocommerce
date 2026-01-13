@@ -296,9 +296,7 @@ jQuery(function ($) {
     const mq = await ensureMintQuote();
     const el = $qr.get(0) as HTMLElement | undefined;
     if (!el || typeof QRCode === 'undefined') return;
-    const $qrWrap = $qr.parent();
     el.innerHTML = '';
-    // eslint-disable-next-line no-new
     new QRCode(el, {
       text: 'lightning:' + mq.request,
       width: 360,
@@ -308,6 +306,7 @@ jQuery(function ($) {
       correctLevel: QRCode.CorrectLevel.Q,
     });
     // Copy on click
+    const $qrWrap = $qr.parent(); // allows logo click
     $qrWrap.off('click').on('click', async () => {
       copyTextToClipboard(mq.request);
       setStatus('Copied!');

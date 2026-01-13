@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cashu\WC\Helpers;
 
+use Cashu\WC\Gateway\CashuGateway;
 use WC_Order;
 use WP_Error;
 use WP_REST_Request;
@@ -106,9 +107,10 @@ final class ConfirmMeltQuoteController {
 			return new WP_Error( 'cashu_no_quote', 'Missing melt quote id on order.', array( 'status' => 400 ) );
 		}
 
-		// Check Melt Quote Expiry
-		$expiry = (int) $order->get_meta( '_cashu_melt_quote_expiry', true );
-		if ( $expiry > 0 && time() > $expiry ) {
+		// Check Spot Quote Expiry
+		$spot_time = absint( $order->get_meta( '_cashu_spot_time', true ) );
+		$expiry    = $spot_time + CashuGateway::QUOTE_EXPIRY_SECS;
+		if ( time() > $expiry ) {
 			return rest_ensure_response(
 				array(
 					'ok'     => true,
