@@ -140,11 +140,6 @@ final class CashuWCPlugin {
 	}
 
 	public function enqueueAdminScripts( string $hook ): void {
-		// Only load on WooCommerce settings screens, where the notice lives.
-		if ( 'woocommerce_page_wc-settings' !== $hook ) {
-			return;
-		}
-
 		wp_enqueue_script(
 			'cashu-notifications',
 			CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js',
@@ -152,7 +147,6 @@ final class CashuWCPlugin {
 			CASHU_WC_VERSION,
 			true
 		);
-
 		wp_localize_script(
 			'cashu-notifications',
 			'cashuNotifications',

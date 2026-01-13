@@ -40,8 +40,6 @@
     "braceStyle": "1tbs"
   },
   "scripts": {
-    "test": "composer test",
-    "lint:stan": "composer stan",
     "lint:php:check": "composer lint:check",
     "lint:php": "composer lint:fix",
     "lint:css:check": "stylelint \"assets/**/*.css\"",
