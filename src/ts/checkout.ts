@@ -20,10 +20,15 @@ type CashuWindow = Window & {
   cashu_wc?: {
     rest_root?: string;
     confirm_route?: string;
+    symbol: string;
+    i18n?: Record<string, string>;
   };
 };
-
 declare const window: CashuWindow;
+
+// The 'wp-i18n' dependency.
+declare const wp: { i18n: { sprintf: (format: string, ...args: any[]) => string } };
+
 declare const QRCode: any;
 
 type CurrencyUnit = 'btc' | 'sat' | 'msat' | string;
@@ -144,6 +149,20 @@ function sameMint(a: string, b: string): boolean {
   }
 }
 
+/**
+ * Translation function for i18n
+ */
+function t(key: string, ...args: any[]): string {
+  const dict = window.cashu_wc?.i18n ?? {};
+  const raw = dict[key] ?? key;
+  if (!args.length) return raw;
+  try {
+    return wp.i18n.sprintf(raw, ...args);
+  } catch {
+    return raw; // safe fallback
+  }
+}
+
 // ------------------------------
 // LocalStorage helpers
 // ------------------------------
@@ -232,7 +251,7 @@ jQuery(function ($) {
     e.preventDefault();
     const token = getToken();
     if (!token) {
-      setStatus('Paste a Cashu token first...', true);
+      setStatus(t('paste_token_first'), true);
       return;
     }
     void run(() => payFromToken(token), { user: true });
@@ -243,7 +262,7 @@ jQuery(function ($) {
   try {
     data = readRootData($root);
   } catch (_e) {
-    $status.text('Payment data incomplete, please refresh and try again.');
+    $status.text(t('payment_data_incomplete'));
     return;
   }
 
@@ -267,7 +286,7 @@ jQuery(function ($) {
 
   // Start async processes (don’t block UI)
   void startAsyncProcesses().catch(() => {
-    setStatus('Could not prepare the invoice, please refresh and try again', true);
+    setStatus(t('prepare_invoice_failed'), true);
   });
 
   // ------------------------------
@@ -282,10 +301,7 @@ jQuery(function ($) {
     if (token) {
       payFromToken(token).catch((e) => {
         console.error(e);
-        setStatus(
-          'Payment failed. Please copy the new token from the form input below.',
-          true,
-        );
+        setStatus(t('recovery_failed'), true);
         $input.val(token);
         localStorage.removeItem(ls.recovery);
       });
@@ -309,9 +325,9 @@ jQuery(function ($) {
     const $qrWrap = $qr.parent(); // allows logo click
     $qrWrap.off('click').on('click', async () => {
       copyTextToClipboard(mq.request);
-      setStatus('Copied!');
+      setStatus(t('copied'));
       await delay(500);
-      setStatus('Waiting for payment...');
+      setStatus(t('waiting_for_payment'));
     });
   }
 
@@ -322,7 +338,7 @@ jQuery(function ($) {
     const isUser = !!opts.user;
 
     if (isUser && userPending > 0) {
-      setStatus('Payment already in progress', true);
+      setStatus(t('payment_in_progress'), true);
       return Promise.resolve(undefined);
     }
 
@@ -362,8 +378,8 @@ jQuery(function ($) {
       unit: 'sat',
     });
     const kind = sameMint(wallet.mint.mintUrl, data.trustedMint)
-      ? 'Change From Network Fee Reserve'
-      : 'Change From Your Token';
+      ? t('change_from_network')
+      : t('change_from_token');
     rememberChangeItem({
       mint: wallet.mint.mintUrl,
       token: tokenStr,
@@ -388,36 +404,36 @@ jQuery(function ($) {
   // ------------------------------
 
   async function payFromToken(token: string): Promise<void> {
-    setStatus('Checking token...');
+    setStatus(t('checking_token'));
     await delay(500);
     let meta: TokenMetadata;
     try {
       meta = getTokenMetadata(token);
     } catch (e) {
       console.error(getErrorMessage(e));
-      setStatus('That token does not look valid', true);
+      setStatus(t('invalid_token'), true);
       return;
     }
 
     const tokenMint = String(meta.mint ?? '').trim();
     const tokenUnit = String(meta.unit ?? 'sat');
     if (!tokenMint || meta.amount === 0) {
-      setStatus('Token has no spendable proofs', true);
+      setStatus(t('no_spendable_proofs'), true);
       return;
     }
     if (tokenUnit !== 'sat') {
-      setStatus('This checkout expects sat denominated tokens', true);
+      setStatus(t('not_sat_denom'), true);
       return;
     }
 
-    setStatus('Connecting to mint...');
+    setStatus(t('connecting_to_mint'));
     await delay(500);
     const tokenWallet = await getWalletCached(tokenMint, 'sat');
     const decoded = tokenWallet.decodeToken(token);
     let proofs = decoded.proofs;
 
     if (!Array.isArray(proofs) || proofs.length === 0) {
-      setStatus('Token has no usable proofs', true);
+      setStatus(t('no_usable_proofs'), true);
       return;
     }
 
@@ -434,27 +450,25 @@ jQuery(function ($) {
     const amount = sumProofs(proofs);
     const fees = tokenWallet.getFeesForProofs(proofs);
 
-    setStatus('Calculating your mint’s fees...');
+    setStatus(t('calculating_fees'));
     await delay(500);
     const utMeltQuote = await tokenWallet.createMeltQuoteBolt11(mq.request);
     const required = utMeltQuote.amount + utMeltQuote.fee_reserve + fees;
     const meltFees = utMeltQuote.fee_reserve + fees;
 
     if (amount < required) {
-      setStatus(
-        `Token amount (₿${amount}) is too small. At least ₿${required} is required to cover your mint's fees (₿${meltFees})`,
-        true,
-      );
+      const symbol = window.cashu_wc?.symbol ?? '₿';
+      setStatus(t('token_too_small', symbol, amount, required, meltFees), true);
       return;
     }
 
-    setStatus('Sending payment to our mint...');
+    setStatus(t('sending_payment'));
     await delay(500);
     const utMeltRes = await tokenWallet.meltProofsBolt11(utMeltQuote, proofs);
 
     const changeProofs = Array.isArray(utMeltRes?.change) ? utMeltRes.change : [];
     void saveProofs(changeProofs, tokenWallet);
-    setStatus('Waiting for payment confirmation...');
+    setStatus(t('waiting_confirmation'));
   }
 
   // ------------------------------
@@ -552,7 +566,7 @@ jQuery(function ($) {
     if (mintHandleP) return mintHandleP;
 
     mintHandleP = (async () => {
-      setStatus('Payment received by our mint...');
+      setStatus(t('payment_received'));
       await delay(500);
       const wallet = await trustedWalletP;
       const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
@@ -585,7 +599,7 @@ jQuery(function ($) {
     const token = getEncodedTokenV4({ mint: data.trustedMint, proofs, unit: 'sat' });
     let meltRes: MeltProofsResponse<MeltQuoteBolt11Response> | undefined;
 
-    setStatus('Paying invoice...');
+    setStatus(t('paying_invoice'));
 
     try {
       localStorage.setItem(ls.recovery, token);
@@ -593,7 +607,7 @@ jQuery(function ($) {
       meltRes = await trustedWallet.meltProofsBolt11(quote, proofs);
     } catch (e) {
       $input.val(token);
-      setStatus(e, true);
+      setStatus(getErrorMessage(e), true);
       return;
     } finally {
       localStorage.removeItem(ls.recovery);
@@ -602,7 +616,7 @@ jQuery(function ($) {
     const changeProofs = Array.isArray(meltRes?.change) ? meltRes.change : [];
     void saveProofs(changeProofs, trustedWallet);
 
-    setStatus('Confirming payment...');
+    setStatus(t('confirming_payment'));
   }
 
   // ------------------------------
@@ -640,18 +654,16 @@ jQuery(function ($) {
       }
 
       if (json?.state === 'EXPIRED') {
-        setStatus('Invoice has expired', true);
+        setStatus(t('invoice_expired'), true);
         await delay(2000);
         window.location.assign(String(data.returnUrl)); // order received page
         return json;
       }
       if (json?.expiry) {
-        const msg = 'Invoice expires in: ' + formatCountdown(json.expiry);
+        const msg = t('invoice_expires_in', formatCountdown(json.expiry));
         const seconds = json.expiry - Date.now() / 1000;
-        if (seconds < 60) {
-          setStatus(msg, true);
-        } else if (seconds < 300) {
-          setStatus(msg);
+        if (seconds < 300) {
+          setStatus(msg, seconds < 60);
         }
       }
 
