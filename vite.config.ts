@@ -8,6 +8,6 @@ export default defineConfig({
 			formats: ['iife'],
 			fileName: () => 'checkout.js',
 		},
-		outDir: 'assets/dist',
+		outDir: 'assets/cashu',
 	},
 });

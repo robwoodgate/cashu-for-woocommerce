@@ -120,7 +120,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Main checkout
 		wp_register_script(
 			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/dist/checkout.js',
+			CASHU_WC_PLUGIN_URL . 'assets/cashu/checkout.js',
 			array( 'jquery', 'cashu-qrcode' ),
 			CASHU_WC_VERSION,
 			true

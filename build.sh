@@ -2,14 +2,10 @@
 
 pkg="cashu-for-woocommerce.zip" # plugin name
 
-# Clear build assets
-# rm assets/dist/checkout.js
-
 # Build packages
 composer install
 npm ci
 npm run build
-# composer install --no-dev --optimize-autoloader
 
 # Create plugin
 rm -f ${pkg}
