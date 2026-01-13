@@ -14,10 +14,27 @@ Cashu For WooCommerce adds a secure Cashu payment gateway to your WooCommerce st
 
 It allows you to receive private bitcoin payments using Cashu ecash, which is then automatically converted (melted) and sent to your bitcoin lightning address.
 
+The following payment flows are available:
+
+- Pay by lightning / QR Code: lightning -> trusted mint -> your lightning address
+- Pay by trusted mint token: token -> trusted mint -> your lightning address
+- Pay by untrusted mint token: token -> untrusted mint -> trusted mint -> your lightning address
+
+##  Features ##
+
+- Receive to any lightning address: Your lightning provider doesn't need any special features.
+- Privacy, just like cash: All payments are routed through your trusted Cashu mint. Your lighting address stays private, so do your customer's payments.
+- Flexibilty: switch trusted mints at any time to find the best fees and service.
+- Pay via Lightning: Customers can pay from a regular bitcoin lightning wallet.
+- Pay via Cashu Token: Customers can paste a token from any mint and it will be melted to your trusted mint, then melted to your lightning address.
+- Safety: Your only have to trust one Cashu mint (your trusted mint).
+- Accurate prices: Spot rates are taken from coinbase / coingecko.
+- I18n: Checkout can be translated into any language.
+
 ## Installation ##
 
 1. Make sure your server is running PHP 8.3 or higher
-1. Upload and unzip `cashu-for-woocommerce.zip` to the `/wp-content/plugins/` directory.
+2. Upload and unzip `cashu-for-woocommerce.zip` to the `/wp-content/plugins/` directory.
 3. Activate the plugin through the 'Plugins' menu in WordPress.
 4. Configure the plugin settings via the WooCommerce settings page.
 5. Ensure you setup your lightning address so Cashu payments can be routed properly.
