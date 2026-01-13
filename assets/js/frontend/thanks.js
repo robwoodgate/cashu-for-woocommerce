@@ -11,6 +11,29 @@
     }
   }
 
+  // i18n helpers
+  function t(key) {
+    var dict = (window.cashu_wc_thanks && window.cashu_wc_thanks.i18n) || {};
+    return dict[key] || key;
+  }
+  function sym() {
+    return (window.cashu_wc_thanks && window.cashu_wc_thanks.symbol) || '₿';
+  }
+  function sprintf(fmt /*, ...args */) {
+    // Prefer WP sprintf if available
+    try {
+      if (window.wp && wp.i18n && typeof wp.i18n.sprintf === 'function') {
+        return wp.i18n.sprintf.apply(null, arguments);
+      }
+    } catch {}
+    // Fallback: very small %s/%d replacement (good enough for our usage)
+    var args = Array.prototype.slice.call(arguments, 1);
+    var i = 0;
+    return String(fmt).replace(/%(\d+\$)?[sd]/g, function () {
+      var v = args[i++];
+      return v === undefined || v === null ? '' : String(v);
+    });
+  }
   async function copyText(text) {
     if (!text) return Promise.resolve(false);
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -42,7 +65,7 @@
   if (!root) return;
   const storageKey = 'cashu_wc_change';
 
-  // Get change from session storage
+  // Get change from local storage
   let payload = null;
   try {
     const raw = localStorage.getItem(storageKey);
@@ -68,15 +91,15 @@
   root.classList.add('cashu-change');
   root.innerHTML = `
 		<div class="cashu-change-head">
-			<div class="cashu-change-title">Your Cashu change</div>
-			<button type="button" class="cashu-change-dismiss">Dismiss</button>
+			<div class="cashu-change-title">${t('title')}</div>
+			<button type="button" class="cashu-change-dismiss">${t('dismiss')}</button>
 		</div>
 		<div class="cashu-change-lead">
-			If you use a Cashu wallet, copy any change tokens below and paste them into your wallet.
+			${t('lead')}
 		</div>
 		<div class="cashu-change-list"></div>
 		<div class="cashu-change-tip">
-			<strong>Important:</strong> save your change now, we do not store tokens on our server.
+			<strong>${t('important')}</strong> ${t('tip')}
 		</div>
 	`;
 
@@ -86,34 +109,34 @@
     const item = document.createElement('div');
     item.className = 'cashu-change-item';
     item.setAttribute('data-idx', String(idx));
+    const dustNote =
+      it && it.dust ? `<div class="cashu-change-note">${t('dust_note')}</div>` : '';
     item.innerHTML = `
 			<div class="cashu-change-row">
 				<div class="cashu-change-left">
 					<div class="cashu-change-label"></div>
 					<div class="cashu-change-meta"></div>
-					${it && it.dust ? '<div class="cashu-change-note">May be too small to spend on its own due to per proof fees.</div>' : ''}
+					${dustNote}
 				</div>
 				<div class="cashu-change-btns">
-					<button type="button" class="cashu-change-btn cashu-change-copy" data-action="copy" data-idx="${idx}">Copy</button>
-					<button type="button" class="cashu-change-btn cashu-change-toggle" data-action="toggle" data-idx="${idx}">Show</button>
+					<button type="button" class="cashu-change-btn cashu-change-copy" data-action="copy" data-idx="${idx}">${t('copy')}</button>
+					<button type="button" class="cashu-change-btn cashu-change-toggle" data-action="toggle" data-idx="${idx}">${t('show')}</button>
 				</div>
 			</div>
 			<pre class="cashu-change-token" hidden></pre>
 		`;
     const labelEl = $('.cashu-change-label', item);
-    labelEl.textContent = it.kind ?? 'Change';
+    labelEl.textContent = it && it.kind ? String(it.kind) : t('change');
     if (it && it.dust) {
-      // Dust badge
       const badge = document.createElement('span');
       badge.className = 'cashu-change-badge';
-      badge.textContent = 'Dust';
+      badge.textContent = t('dust_badge');
       labelEl.appendChild(badge);
     }
-    // labelEl.textContent = `Mint: ${mintHost(it && it.mint)}`;
-    // Token description
     const metaEl = $('.cashu-change-meta', item);
     const amount = Number.isFinite(it && it.amount) ? it.amount : 0;
-    metaEl.textContent = `Amount: ₿${amount} - ${mintHost(it && it.mint)}`;
+    const host = mintHost(it && it.mint);
+    metaEl.textContent = sprintf(t('meta_amount'), sym(), amount, host);
     const tokenEl = $('.cashu-change-token', item);
     tokenEl.textContent = String(it && it.token ? it.token : '');
     list.appendChild(item);
@@ -131,13 +154,13 @@
       root.remove();
       return;
     }
-    // Item toggle
     const action = btn.getAttribute('data-action');
     const idxRaw = btn.getAttribute('data-idx');
     const idx = idxRaw ? parseInt(idxRaw, 10) : NaN;
     if (!Number.isFinite(idx)) return;
     const item = payload.items[idx];
     if (!item) return;
+    // Item toggle
     if (action === 'toggle') {
       const card = btn.closest('.cashu-change-item');
       const pre = card ? $('.cashu-change-token', card) : null;
@@ -145,10 +168,10 @@
       const isHidden = pre.hasAttribute('hidden');
       if (isHidden) {
         pre.removeAttribute('hidden');
-        btn.textContent = 'Hide';
+        btn.textContent = t('hide');
       } else {
         pre.setAttribute('hidden', '');
-        btn.textContent = 'Show';
+        btn.textContent = t('show');
       }
       return;
     }
@@ -159,7 +182,7 @@
       const old = btn.textContent;
       btn.disabled = true;
       const ok = await copyText(token);
-      btn.textContent = ok ? 'Copied' : 'Copy failed';
+      btn.textContent = ok ? t('copied') : t('copy_failed');
       setTimeout(() => {
         btn.textContent = old;
         btn.disabled = false;

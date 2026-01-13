@@ -262,7 +262,7 @@ jQuery(function ($) {
   try {
     data = readRootData($root);
   } catch (_e) {
-    $status.text(t('payment_data_incomplete'));
+    $status.text(t('data_incomplete'));
     return;
   }
 
@@ -286,7 +286,7 @@ jQuery(function ($) {
 
   // Start async processes (don’t block UI)
   void startAsyncProcesses().catch(() => {
-    setStatus(t('prepare_invoice_failed'), true);
+    setStatus(t('invoice_failed'), true);
   });
 
   // ------------------------------

@@ -132,55 +132,55 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 				'i18n'          => array(
 					// General / bootstrap
-					'payment_data_incomplete' => __( 'Payment data incomplete, please refresh and try again.', 'cashu-for-woocommerce' ),
-					'prepare_invoice_failed'  => __( 'Could not prepare the invoice, please refresh and try again', 'cashu-for-woocommerce' ),
+					'data_incomplete'      => __( 'Payment data incomplete, please refresh and try again.', 'cashu-for-woocommerce' ),
+					'invoice_failed'       => __( 'Could not prepare the invoice, please refresh and try again', 'cashu-for-woocommerce' ),
 
 					// User actions
-					'paste_token_first'       => __( 'Paste a Cashu token first...', 'cashu-for-woocommerce' ),
-					'payment_in_progress'     => __( 'Payment already in progress', 'cashu-for-woocommerce' ),
+					'paste_token_first'    => __( 'Paste a Cashu token first...', 'cashu-for-woocommerce' ),
+					'payment_in_progress'  => __( 'Payment already in progress', 'cashu-for-woocommerce' ),
 
 					// QR interactions
-					'copied'                  => __( 'Copied!', 'cashu-for-woocommerce' ),
-					'waiting_for_payment'     => __( 'Waiting for payment...', 'cashu-for-woocommerce' ),
+					'copied'               => __( 'Copied!', 'cashu-for-woocommerce' ),
+					'waiting_for_payment'  => __( 'Waiting for payment...', 'cashu-for-woocommerce' ),
 
 					// Recovery flow
-					'recovery_failed'         => __( 'Payment failed. Please copy the new token from the form input below.', 'cashu-for-woocommerce' ),
+					'recovery_failed'      => __( 'Payment failed. Please copy the new token from the form input below.', 'cashu-for-woocommerce' ),
 
 					// Token validation / connection
-					'checking_token'          => __( 'Checking token...', 'cashu-for-woocommerce' ),
-					'invalid_token'           => __( 'That token does not look valid', 'cashu-for-woocommerce' ),
-					'no_spendable_proofs'     => __( 'Token has no spendable proofs', 'cashu-for-woocommerce' ),
-					'not_sat_denom'           => __( 'This checkout expects sat denominated tokens', 'cashu-for-woocommerce' ),
+					'checking_token'       => __( 'Checking token...', 'cashu-for-woocommerce' ),
+					'invalid_token'        => __( 'That token does not look valid', 'cashu-for-woocommerce' ),
+					'no_spendable_proofs'  => __( 'Token has no spendable proofs', 'cashu-for-woocommerce' ),
+					'not_sat_denom'        => __( 'This checkout expects sat denominated tokens', 'cashu-for-woocommerce' ),
 
-					'connecting_to_mint'      => __( 'Connecting to mint...', 'cashu-for-woocommerce' ),
-					'no_usable_proofs'        => __( 'Token has no usable proofs', 'cashu-for-woocommerce' ),
+					'connecting_to_mint'   => __( 'Connecting to mint...', 'cashu-for-woocommerce' ),
+					'no_usable_proofs'     => __( 'Token has no usable proofs', 'cashu-for-woocommerce' ),
 
 					// Fees / untrusted melt path
-					'calculating_fees'        => __( "Calculating your mint's fees...", 'cashu-for-woocommerce' ),
+					'calculating_fees'     => __( "Calculating your mint's fees...", 'cashu-for-woocommerce' ),
 
 					/* translators: 1: bitcoin symbol, 2: token amount (sats), 3: required amount (sats), 4: fees (sats) */
-					'token_too_small'         => __(
+					'token_too_small'      => __(
 						"Token amount (%1\$s%2\$d) is too small. At least %1\$s%3\$d is required to cover your mint's fees (%1\$s%4\$d)",
 						'cashu-for-woocommerce'
 					),
 
-					'sending_payment'         => __( 'Sending payment to our mint...', 'cashu-for-woocommerce' ),
-					'waiting_confirmation'    => __( 'Waiting for payment confirmation...', 'cashu-for-woocommerce' ),
+					'sending_payment'      => __( 'Sending payment to our mint...', 'cashu-for-woocommerce' ),
+					'waiting_confirmation' => __( 'Waiting for payment confirmation...', 'cashu-for-woocommerce' ),
 
 					// Trusted mint path (mint paid, then pay vendor)
-					'payment_received'        => __( 'Payment received by our mint...', 'cashu-for-woocommerce' ),
-					'paying_invoice'          => __( 'Paying invoice...', 'cashu-for-woocommerce' ),
-					'confirming_payment'      => __( 'Confirming payment...', 'cashu-for-woocommerce' ),
+					'payment_received'     => __( 'Payment received by our mint...', 'cashu-for-woocommerce' ),
+					'paying_invoice'       => __( 'Paying invoice...', 'cashu-for-woocommerce' ),
+					'confirming_payment'   => __( 'Confirming payment...', 'cashu-for-woocommerce' ),
 
 					// Change
-					'change_from_network'     => __( 'Change From Network Fee Reserve', 'cashu-for-woocommerce' ),
-					'change_from_token'       => __( 'Change From Your Token', 'cashu-for-woocommerce' ),
+					'change_from_network'  => __( 'Change From Network Fee Reserve', 'cashu-for-woocommerce' ),
+					'change_from_token'    => __( 'Change From Your Token', 'cashu-for-woocommerce' ),
 
 					// Order status polling
-					'invoice_expired'         => __( 'Invoice has expired', 'cashu-for-woocommerce' ),
+					'invoice_expired'      => __( 'Invoice has expired', 'cashu-for-woocommerce' ),
 
 					/* translators: 1: time remaining, formatted like MM:SS */
-					'invoice_expires_in'      => __( 'Invoice expires in: %1$s', 'cashu-for-woocommerce' ),
+					'invoice_expires_in'   => __( 'Invoice expires in: %1$s', 'cashu-for-woocommerce' ),
 				),
 			)
 		);
@@ -189,9 +189,52 @@ class CashuGateway extends \WC_Payment_Gateway {
 		wp_register_script(
 			'cashu-thanks',
 			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/thanks.js',
-			array( 'jquery' ),
+			array( 'wp-i18n' ),
 			CASHU_WC_VERSION,
 			true
+		);
+
+		wp_localize_script(
+			'cashu-thanks',
+			'cashu_wc_thanks',
+			array(
+				'symbol' => CASHU_WC_BIP177_SYMBOL,
+				'i18n'   => array(
+					'title'       => __( 'Your Cashu change', 'cashu-for-woocommerce' ),
+					'dismiss'     => __( 'Dismiss', 'cashu-for-woocommerce' ),
+
+					'lead'        => __(
+						'If you use a Cashu wallet, copy any change tokens below and paste them into your wallet.',
+						'cashu-for-woocommerce'
+					),
+
+					/* translators: %s is the word "Important:" (label) shown before the message */
+					'important'   => __( 'Important:', 'cashu-for-woocommerce' ),
+
+					'tip'         => __(
+						'save your change now, we do not store tokens on our server.',
+						'cashu-for-woocommerce'
+					),
+
+					'dust_badge'  => __( 'Dust', 'cashu-for-woocommerce' ),
+
+					'dust_note'   => __(
+						'May be too small to spend on its own due to per proof fees.',
+						'cashu-for-woocommerce'
+					),
+
+					'copy'        => __( 'Copy', 'cashu-for-woocommerce' ),
+					'copied'      => __( 'Copied', 'cashu-for-woocommerce' ),
+					'copy_failed' => __( 'Copy failed', 'cashu-for-woocommerce' ),
+					'show'        => __( 'Show', 'cashu-for-woocommerce' ),
+					'hide'        => __( 'Hide', 'cashu-for-woocommerce' ),
+
+					'change'      => __( 'Change', 'cashu-for-woocommerce' ),
+
+					/* translators: 1: bitcoin symbol, 2: amount in sats, 3: mint hostname */
+					'meta_amount' => __( 'Amount: %1$s%2$d, %3$s', 'cashu-for-woocommerce' ),
+				),
+			)
 		);
 
 		// Gateway CSS
