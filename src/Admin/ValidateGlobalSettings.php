@@ -18,22 +18,20 @@ final class ValidateGlobalSettings {
 		add_filter(
 			'woocommerce_admin_settings_sanitize_option_cashu_trusted_mint',
 			array( self::class, 'sanitize_trusted_mint' ),
-			10,
-			3
+			10
 		);
 
 		add_filter(
 			'woocommerce_admin_settings_sanitize_option_cashu_lightning_address',
 			array( self::class, 'sanitize_lightning_address' ),
-			10,
-			3
+			10
 		);
 	}
 
-	public static function sanitize_trusted_mint( $value, array $option, $raw_value ) {
+	public static function sanitize_trusted_mint( $value ) {
 		$value = trim( (string) $value );
 
-		if ( $value === '' ) {
+		if ( '' === $value ) {
 			return '';
 		}
 
@@ -52,10 +50,10 @@ final class ValidateGlobalSettings {
 		return untrailingslashit( $validated );
 	}
 
-	public static function sanitize_lightning_address( $value, array $option, $raw_value ) {
+	public static function sanitize_lightning_address( $value ) {
 		$value = trim( (string) $value );
 
-		if ( $value === '' ) {
+		if ( '' === $value ) {
 			return '';
 		}
 

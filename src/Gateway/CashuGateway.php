@@ -354,14 +354,13 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Make request
 		$res = wp_remote_post( $endpoint, $args );
 		if ( is_wp_error( $res ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \RuntimeException( 'Mint quote request failed: ' . sanitize_text_field( $res->get_error_message() ) );
+			throw new \RuntimeException( 'Mint quote request failed: ' . esc_html( sanitize_text_field( $res->get_error_message() ) ) );
 		}
 
 		// Check response code is 2xx (OK)
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		if ( $code < 200 || $code >= 300 ) {
-			throw new \RuntimeException( 'Mint quote request failed, HTTP ' . (int) $code );
+			throw new \RuntimeException( 'Mint quote request failed, HTTP ' . esc_html( (string) $code ) );
 		}
 
 		// Decode response body
@@ -399,11 +398,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 			)
 		);
 		if ( is_wp_error( $res ) ) {
-			throw new \RuntimeException( 'Mint keysets request failed: ' . sanitize_text_field( $res->get_error_message() ) );
+			throw new \RuntimeException( 'Mint keysets request failed: ' . esc_html( sanitize_text_field( $res->get_error_message() ) ) );
 		}
 		$code = (int) wp_remote_retrieve_response_code( $res );
 		if ( $code < 200 || $code >= 300 ) {
-			throw new \RuntimeException( 'Mint keysets request failed, HTTP ' . $code );
+			throw new \RuntimeException( 'Mint keysets request failed, HTTP ' . esc_html( (string) $code ) );
 		}
 		$body = wp_remote_retrieve_body( $res );
 		$json = json_decode( $body, true );

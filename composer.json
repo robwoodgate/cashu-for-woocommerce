@@ -23,7 +23,7 @@
   },
   "scripts": {
     "lint:check": "vendor/bin/phpcs",
-    "lint:fix": "vendor/bin/phpcbf"
+    "lint:fix": "sh -c 'vendor/bin/phpcbf; ec=$?; [ $ec -le 1 ]'"
   },
   "config": {
     "allow-plugins": {

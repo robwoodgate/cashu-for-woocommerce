@@ -51,7 +51,7 @@
     "start": "grunt default",
     "readme": "grunt readme",
     "i18n": "grunt i18n",
-    "build": "vite build && npm run format && npm run lint && npm run start",
+    "build": "vite build && npm run format && npm run lint && npm run lint:check && npm run start",
     "check": "npm run format:check && npm run lint:check && npm test",
     "fix": "npm run format && npm run lint",
     "wp-env:start": "wp-env start",

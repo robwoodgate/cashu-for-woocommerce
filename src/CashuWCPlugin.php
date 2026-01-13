@@ -139,7 +139,7 @@ final class CashuWCPlugin {
 		);
 	}
 
-	public function enqueueAdminScripts( string $hook ): void {
+	public function enqueueAdminScripts(): void {
 		wp_enqueue_script(
 			'cashu-notifications',
 			CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js',
