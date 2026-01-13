@@ -1,6 +1,6 @@
 **/*.php
 vendor/
 node_modules/
-assets/cashu
+assets/js/cashu
 build/
 languages/
