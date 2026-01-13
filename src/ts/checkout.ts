@@ -176,22 +176,17 @@ function deleteJson(key: string): void {
 
 function loadChangePayload(key: string): ChangePayload {
   try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return { v: 1, created: Date.now(), items: [] };
-    const parsed = JSON.parse(raw) as ChangePayload;
-    if (!parsed || !Array.isArray(parsed.items))
+    const parsed = loadJson<ChangePayload>(key);
+    if (
+      !parsed ||
+      !Array.isArray(parsed.items) ||
+      Date.now() - parsed.created > 60 * 60 * 1000 // older than 1 hour
+    ) {
       return { v: 1, created: Date.now(), items: [] };
+    }
     return parsed;
   } catch {
     return { v: 1, created: Date.now(), items: [] };
-  }
-}
-
-function saveChangePayload(key: string, payload: ChangePayload): void {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(payload));
-  } catch {
-    // ignore
   }
 }
 
@@ -267,7 +262,7 @@ jQuery(function ($) {
 
   // Clear old change
   try {
-    sessionStorage.removeItem(ls.change);
+    deleteJson(ls.change);
   } catch {}
 
   // Start async processes (don’t block UI)
@@ -283,7 +278,6 @@ jQuery(function ($) {
     void renderQr();
     void pollOrderStatus();
     void startMintQuoteWatcher();
-    void startMeltPaidWatcher();
     const token = localStorage.getItem(ls.recovery);
     if (token) {
       payFromToken(token).catch((e) => {
@@ -302,6 +296,7 @@ jQuery(function ($) {
     const mq = await ensureMintQuote();
     const el = $qr.get(0) as HTMLElement | undefined;
     if (!el || typeof QRCode === 'undefined') return;
+    const $qrWrap = $qr.parent();
     el.innerHTML = '';
     // eslint-disable-next-line no-new
     new QRCode(el, {
@@ -313,7 +308,12 @@ jQuery(function ($) {
       correctLevel: QRCode.CorrectLevel.Q,
     });
     // Copy on click
-    $qr.off('click').on('click', () => copyTextToClipboard(mq.request));
+    $qrWrap.off('click').on('click', async () => {
+      copyTextToClipboard(mq.request);
+      setStatus('Copied!');
+      await delay(500);
+      setStatus('Waiting for payment...');
+    });
   }
 
   async function run<T>(
@@ -381,7 +381,7 @@ jQuery(function ($) {
     if (!exists) payload.items.push(item);
     // cap to 5 items
     payload.items = payload.items.slice(-5);
-    saveChangePayload(ls.change, payload);
+    saveJson(ls.change, payload);
   }
 
   // ------------------------------
@@ -508,34 +508,44 @@ jQuery(function ($) {
     const mq = await ensureMintQuote();
     const wallet = await trustedWalletP;
 
-    // Websocket is the primary watcher
-    const ws = async () => {
+    // Websocket is primary listener
+    const wsPaid = async (): Promise<boolean> => {
       const expiryMs = data.quoteExpiryMs - Date.now();
-      const timeoutMs = Math.max(10_000, expiryMs); // min 10s
-      await wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs });
-    };
+      if (expiryMs <= 0 || ac.signal.aborted) return false;
 
-    // Fallback: poll every 3s until paid or time runs out
-    const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
-        const q = await wallet.checkMintQuoteBolt11(mq.quote);
-        if (q.state === 'PAID') return; // promise: success
-        await delay(3000);
+      // Keep ws open min 10s, but stop waiting at quote expiry.
+      const timeoutMs = Math.max(10_000, expiryMs);
+      try {
+        await Promise.race([
+          wallet.on.onceMintPaid(mq.quote, { signal: ac.signal, timeoutMs }),
+          delay(expiryMs).then(() => {
+            throw new Error('Quote expired');
+          }),
+        ]);
+        return true;
+      } catch {
+        return false;
       }
-      // promise: failure
-      throw new Error('Mint quote timed out or was aborted.');
     };
 
-    try {
-      // Try websocket first...
-      await ws();
-    } catch (e: unknown) {
-      // fallback to poll unless aborted
-      if (ac.signal.aborted) throw e;
-      await poll();
-    }
+    // Fallback polling
+    const pollPaid = async (): Promise<boolean> => {
+      try {
+        while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
+          const q = await wallet.checkMintQuoteBolt11(mq.quote);
+          if (q.state === 'PAID') return true;
+          await delay(3000);
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    };
 
-    // success!
+    const paid = (await wsPaid()) || (!ac.signal.aborted && (await pollPaid()));
+    if (!paid) return;
+
+    // success only
     void run(() => handleMintQuotePaid(mq));
   }
 
@@ -566,44 +576,6 @@ jQuery(function ($) {
   // lightning invoice and settle
   // using proofs from trusted mint
   // ------------------------------
-
-  async function startMeltPaidWatcher(): Promise<void> {
-    const wallet = await trustedWalletP;
-
-    // Websocket is the primary watcher
-    const ws = async () => {
-      const expiryMs = Date.now() - data.quoteExpiryMs;
-      const timeoutMs = Math.max(10_000, expiryMs); // min 10s
-      await wallet.on.onceMeltPaid(data.quoteId, { signal: ac.signal, timeoutMs });
-    };
-
-    // Fallback: poll every 3s until paid or time runs out
-    const poll = async () => {
-      while (!ac.signal.aborted && Date.now() < data.quoteExpiryMs) {
-        const q: MeltQuoteBolt11Response = await wallet.checkMeltQuoteBolt11(
-          data.quoteId,
-        );
-        if (q.state === 'PAID') return; // promise: success
-        await delay(3000);
-      }
-      // promise: failure
-      throw new Error('Melt quote timed out or was aborted.');
-    };
-
-    try {
-      // Try websocket first...
-      await ws();
-    } catch (e: unknown) {
-      // fallback to poll unless aborted
-      if (ac.signal.aborted) throw e;
-      await poll();
-    }
-
-    // success!
-    setStatus('Payment complete!');
-    await delay(1000);
-    void run(() => checkOrderStatus());
-  }
 
   async function meltTrustedProofsToVendor(
     proofs: Proof[],
@@ -695,5 +667,8 @@ jQuery(function ($) {
       const r = await run(() => checkOrderStatus());
       if (r?.state === 'PAID' || r?.state === 'EXPIRED') return;
     }
+    // Final check for redirect
+    await delay(3000);
+    await run(() => checkOrderStatus());
   }
 });

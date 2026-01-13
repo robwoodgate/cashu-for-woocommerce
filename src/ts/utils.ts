@@ -1,49 +1,33 @@
 import confetti from 'canvas-confetti';
-import toastr from 'toastr';
 
 /**
  * Copies text to clipboard, with fallback for localhost operation
- * @param {string} text Text to copy
+ * @param text Text to copy
  */
-export function copyTextToClipboard(text: string) {
-  if (!navigator.clipboard) {
-    fallbackCopyTextToClipboard(text);
-    return;
+export async function copyTextToClipboard(text: string) {
+  if (!text) return Promise.resolve(false);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard
+      .writeText(text)
+      .then(() => true)
+      .catch(() => false);
   }
-  navigator.clipboard.writeText(text).then(
-    function () {
-      toastr.success('Copied!');
-    },
-    function (err) {
-      console.error('Async: Could not copy text: ', err);
-    },
-  );
-}
-
-function fallbackCopyTextToClipboard(text: string) {
-  var textArea = document.createElement('textarea');
-  textArea.value = text;
-
-  // Avoid scrolling to bottom
-  textArea.style.top = '0';
-  textArea.style.left = '0';
-  textArea.style.position = 'fixed';
-
-  document.body.appendChild(textArea);
-  textArea.focus();
-  textArea.select();
-
   try {
-    var successful = document.execCommand('copy');
-    if (successful) {
-      toastr.success('Copied!');
-    }
-  } catch (err) {
-    toastr.error('Copy failed');
-    console.error('Fallback: Oops, unable to copy', err);
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    // Avoid scrolling to bottom
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.position = 'fixed';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return Promise.resolve(!!ok);
+  } catch {
+    return Promise.resolve(false);
   }
-
-  document.body.removeChild(textArea);
 }
 
 /**

@@ -113,10 +113,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 			true
 		);
 
-		// Toastr - non-blocking notifications; https://github.com/CodeSeven/toastr
-		// This is the CSS, the script is imported via npm into checkout.ts
-		wp_register_style( 'toastr', CASHU_WC_PLUGIN_URL . 'assets/css/toastr.min.css', array(), CASHU_WC_VERSION, false ); // NB: head
-
 		// Main checkout
 		wp_register_script(
 			'cashu-checkout',
@@ -507,7 +503,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 		wp_enqueue_script( 'cashu-qrcode' );
 		wp_enqueue_script( 'cashu-checkout' );
 		wp_enqueue_style( 'cashu-public' );
-		wp_enqueue_style( 'toastr' );
 
 		echo '<div id="cashu-pay-root"
 			data-order-id="' . esc_attr( $order_id ) . '"
@@ -572,7 +567,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					?>
 				</div>
 				<div class="cashu-qr-wrap">
-					<div class="cashu-qr" id="cashu-qr" data-cashu-qr>
+					<div class="cashu-qr" data-cashu-qr>
 						<!-- JS renders QR here, canvas or img is fine -->
 					</div>
 

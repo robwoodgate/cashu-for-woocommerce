@@ -38,9 +38,10 @@ npm run wp-env:reset
 npm run wp-env:destroy
 
 # Prep for release
-npm run start
-npm run format
 npm run build
+
+# Build Plugin Zip file
+./build.sh
 ```
 
 ## Local WordPress and WooCommerce environment with wp-env
@@ -54,29 +55,12 @@ The environment runs two sites
 
 Both are separate WordPress installs backed by separate databases, but they share the same code from this repository.
 
-### Installing wp-env
-
-You can use a global install, a local dev dependency, or both.
-
-Global install
-
-```bash
-npm -g install @wordpress/env
-```
-
-The local dev dependency is installed automatically when you run
-
-```bash
-npm install
-```
-
-If you have it as a dev dependency, the existing npm scripts will use the local `node_modules/.bin/wp-env` binary, which keeps everyone on the same version.
-
 ### Starting the environment
 
 From the plugin root
 
 ```bash
+npm install
 npm run wp-env:start
 ```
 
@@ -151,7 +135,7 @@ As part of development, you will likely want to view / tail the various logs.
 The following command will tail the Apache webserver log:
 
 ```bash
-wp-env logs
+npx wp-env logs
 ```
 
 **PHP logs:**
@@ -233,15 +217,11 @@ That will
 
 You can run these individually if you prefer.
 
-Only translation work
-
 ```bash
+# Translations
 npm run i18n
-```
 
-Only readme conversion
-
-```bash
+# readme conversion
 npm run readme
 ```
 
@@ -263,15 +243,16 @@ To automatically fix formatting issues
 npm run format
 ```
 
-We also have PHP linting using phpstan. Run it with
+We also have JS/PHP code linting:
 
 ```bash
-composer stan
-# or via npm
-npm run lint:php
+# Perform automatic fixes
+npm run lint
+# Check all linting issues resolved
+npm run lint:check
 ```
 
-Before opening a pull request, please run `npm run format` so your changes match the existing style.
+Before opening a pull request, please run `npm run build` so your changes match the existing style.
 
 ## Internationalisation
 
@@ -296,30 +277,6 @@ npm run i18n
 
 which will update text domains where needed and regenerate the pot file.
 
-## Running tests
-
-PHP unit tests are managed with PHPUnit via Composer.
-
-To run the test suite
-
-```bash
-composer test
-# or via npm
-npm run test
-```
-
-This will execute the tests defined in the test suite using the PHPUnit binary in `vendor/bin/phpunit`.
-
-Please run the tests before opening a pull request, especially if you have changed any PHP code.
-
-If you prefer to run tests inside the wp-env containers, you can also use `wp-env run`, for example
-
-```bash
-wp-env run tests-cli phpunit
-```
-
-but this is optional and not required for basic contributions.
-
 ## Development workflow
 
 A typical workflow for a small change might look like this
@@ -331,10 +288,9 @@ A typical workflow for a small change might look like this
 3. Run the tools
 
 	```bash
-	npm run format
-	npm run i18n
-	npm run readme
-	npm run test
+	# Runs build, format, lint, grunt etc
+	# Ensure it completes with "Done"
+	npm run build
 	```
 
 4. Start or update the wp-env WordPress site and test the plugin in a WooCommerce store

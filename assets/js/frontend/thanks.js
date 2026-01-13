@@ -13,7 +13,6 @@
 
   async function copyText(text) {
     if (!text) return Promise.resolve(false);
-
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard
         .writeText(text)
@@ -23,7 +22,12 @@
     try {
       const ta = document.createElement('textarea');
       ta.value = text;
+      // Avoid scrolling to bottom
+      ta.style.top = '0';
+      ta.style.left = '0';
+      ta.style.position = 'fixed';
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
       const ok = document.execCommand('copy');
       document.body.removeChild(ta);
@@ -41,7 +45,7 @@
   // Get change from session storage
   let payload = null;
   try {
-    const raw = sessionStorage.getItem(storageKey);
+    const raw = localStorage.getItem(storageKey);
     payload = raw ? JSON.parse(raw) : null;
   } catch {
     payload = null;
@@ -54,7 +58,7 @@
   // TTL 60 mins
   if (payload.created && Date.now() - payload.created > 60 * 60 * 1000) {
     try {
-      sessionStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKey);
     } catch {}
     root.remove();
     return;
@@ -122,7 +126,7 @@
     // Dismiss
     if (btn.classList.contains('cashu-change-dismiss')) {
       try {
-        sessionStorage.removeItem(storageKey);
+        localStorage.removeItem(storageKey);
       } catch {}
       root.remove();
       return;
