@@ -13,14 +13,14 @@ require_once $autoload;
 if (!defined('CASHU_WC_VERSION')) {
   define('CASHU_WC_VERSION', '0.1.0');
 }
-if (!defined('CASHU_WC_PLUGIN_FILE_PATH')) {
-  define('CASHU_WC_PLUGIN_FILE_PATH', dirname(__DIR__));
+if (!defined('CASHU_WC_PATH')) {
+  define('CASHU_WC_PATH', dirname(__DIR__));
 }
-if (!defined('CASHU_WC_PLUGIN_URL')) {
-  define('CASHU_WC_PLUGIN_URL', 'file://' . dirname(__DIR__));
+if (!defined('CASHU_WC_URL')) {
+  define('CASHU_WC_URL', 'file://' . dirname(__DIR__));
 }
-if (!defined('CASHU_WC_PLUGIN_ID')) {
-  define('CASHU_WC_PLUGIN_ID', 'cashu-for-woocommerce');
+if (!defined('CASHU_WC_BASE')) {
+  define('CASHU_WC_BASE', 'cashu-for-woocommerce');
 }
 
 // 3. Mock WordPress functions used in your code

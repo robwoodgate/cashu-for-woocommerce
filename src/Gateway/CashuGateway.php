@@ -28,7 +28,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 	public function __construct() {
 		// Init gateway
 		$this->id                 = 'cashu_default';
-		$this->icon               = CASHU_WC_PLUGIN_URL . 'assets/images/cashu-logo.png';
+		$this->icon               = CASHU_WC_URL . 'assets/images/cashu-logo.png';
 		$this->method_title       = __( 'Cashu ecash', 'cashu-for-woocommerce' );
 		$this->method_description = __(
 			'Accept Cashu tokens and melt them straight to your Bitcoin lightning address.',
@@ -107,7 +107,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// QR Code
 		wp_register_script(
 			'cashu-qrcode',
-			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/qrcode.min.js',
+			CASHU_WC_URL . 'assets/js/frontend/qrcode.min.js',
 			array( 'jquery' ),
 			CASHU_WC_VERSION,
 			false // head
@@ -116,7 +116,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Main checkout
 		wp_register_script(
 			'cashu-checkout',
-			CASHU_WC_PLUGIN_URL . 'assets/js/cashu/checkout.js',
+			CASHU_WC_URL . 'assets/js/cashu/checkout.js',
 			array( 'jquery', 'cashu-qrcode', 'wp-i18n' ),
 			CASHU_WC_VERSION,
 			false // head
@@ -188,7 +188,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Change box
 		wp_register_script(
 			'cashu-thanks',
-			CASHU_WC_PLUGIN_URL . 'assets/js/frontend/thanks.js',
+			CASHU_WC_URL . 'assets/js/frontend/thanks.js',
 			array( 'wp-i18n' ),
 			CASHU_WC_VERSION,
 			true
@@ -240,7 +240,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		// Gateway CSS
 		wp_register_style(
 			'cashu-public',
-			CASHU_WC_PLUGIN_URL . 'assets/css/public.css',
+			CASHU_WC_URL . 'assets/css/public.css',
 			array(),
 			CASHU_WC_VERSION
 		);

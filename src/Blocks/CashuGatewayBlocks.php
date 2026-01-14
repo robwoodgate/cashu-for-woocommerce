@@ -51,9 +51,9 @@ final class CashuGatewayBlocks extends AbstractPaymentMethodType {
 	}
 
 	public function get_payment_method_script_handles(): array {
-		$script_url        = CASHU_WC_PLUGIN_URL . 'assets/js/frontend/blocks.js';
+		$script_url        = CASHU_WC_URL . 'assets/js/frontend/blocks.js';
 		$script_asset_path =
-		CASHU_WC_PLUGIN_FILE_PATH . 'assets/js/frontend/blocks.asset.php';
+		CASHU_WC_PATH . 'assets/js/frontend/blocks.asset.php';
 		$script_asset      = file_exists( $script_asset_path )
 		? require $script_asset_path
 		: array(
@@ -73,7 +73,7 @@ final class CashuGatewayBlocks extends AbstractPaymentMethodType {
 			wp_set_script_translations(
 				'cashu-gateway-blocks',
 				'cashu-for-woocommerce',
-				CASHU_WC_PLUGIN_FILE_PATH . 'languages/'
+				CASHU_WC_PATH . 'languages/'
 			);
 		}
 

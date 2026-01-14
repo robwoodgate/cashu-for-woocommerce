@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2026-01-14 09:44:53+00:00\n"
+"POT-Creation-Date: 2026-01-14 21:45:11+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -61,7 +61,7 @@ msgstr ""
 msgid "A mint you trust to act as your intermediary."
 msgstr ""
 
-#: src/Admin/GlobalSettings.php:59
+#: src/Admin/GlobalSettings.php:59 src/CashuWCPlugin.php:327
 msgid "Debug log"
 msgstr ""
 
@@ -86,8 +86,78 @@ msgstr ""
 msgid "Lightning address must be a valid lightning address (name@domain)."
 msgstr ""
 
-#: src/CashuWCPlugin.php:288
+#: src/CashuWCPlugin.php:162
+msgid "Unauthorized"
+msgstr ""
+
+#: src/CashuWCPlugin.php:190
+#. translators: 1: PHP Version string.
+msgid "Your PHP version is %s but Cashu Payment plugin requires version 7.4+."
+msgstr ""
+
+#: src/CashuWCPlugin.php:199
+msgid ""
+"WooCommerce does not appear to be installed. Make sure you do before you "
+"activate Cashu Payment Gateway."
+msgstr ""
+
+#: src/CashuWCPlugin.php:207
+msgid ""
+"The PHP cURL extension is not installed. Make sure it is available "
+"otherwise this plugin will not work."
+msgstr ""
+
+#: src/CashuWCPlugin.php:216
+#. translators: 1: opening <a> tag to settings page 2: closing </a> tag
+msgid "Plugin not configured yet, please %1$sconfigure the plugin here%2$s"
+msgstr ""
+
+#: src/CashuWCPlugin.php:232
+#. translators: 1: opening <a> tag to the WordPress.org review page, 2: closing
+#. </a> tag, 3: opening <button> tag for "remind me later", 4: closing
+#. </button> tag, 5: opening <button> tag for "stop reminding forever", 6:
+#. closing </button> tag. Do not translate the HTML tags, keep the placeholder
+#. numbers.
+msgid ""
+"Thank you for using Cashu for WooCommerce! If you like the plugin, we would "
+"love if you %1$sleave us a review%2$s. %3$sRemind me later%4$s %5$sStop "
+"reminding me forever%6$s"
+msgstr ""
+
+#: src/CashuWCPlugin.php:254
+msgid "Waiting payment"
+msgstr ""
+
+#: src/CashuWCPlugin.php:257
+msgid "Waiting for payment settlement"
+msgstr ""
+
+#: src/CashuWCPlugin.php:260
+msgid "Payment settled"
+msgstr ""
+
+#: src/CashuWCPlugin.php:263
+msgid "Order completed"
+msgstr ""
+
+#: src/CashuWCPlugin.php:267
+msgid "Payment failed"
+msgstr ""
+
+#: src/CashuWCPlugin.php:275
+msgid "Order Status"
+msgstr ""
+
+#: src/CashuWCPlugin.php:298
 msgid "Cashu Amount"
+msgstr ""
+
+#: src/CashuWCPlugin.php:319
+msgid "Settings"
+msgstr ""
+
+#: src/CashuWCPlugin.php:334
+msgid "Docs"
 msgstr ""
 
 #: src/Gateway/CashuGateway.php:32 src/Gateway/CashuGateway.php:75

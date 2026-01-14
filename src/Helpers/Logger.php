@@ -13,7 +13,7 @@ class Logger {
 			}
 
 			$logger  = new \WC_Logger();
-			$context = array( 'source' => CASHU_WC_PLUGIN_ID );
+			$context = array( 'source' => CASHU_WC_BASE );
 			$logger->debug( $message, $context );
 		}
 	}
@@ -25,17 +25,17 @@ class Logger {
 		}
 
 		$logger  = new \WC_Logger();
-		$context = array( 'source' => CASHU_WC_PLUGIN_ID );
+		$context = array( 'source' => CASHU_WC_BASE );
 		$logger->error( $message, $context );
 	}
 
 	public static function getLogFileUrl(): string {
 		$log_file =
-		CASHU_WC_PLUGIN_ID .
+		CASHU_WC_BASE .
 		'-' .
 		gmdate( 'Y-m-d' ) .
 		'-' .
-		sanitize_file_name( wp_hash( CASHU_WC_PLUGIN_ID ) ) .
+		sanitize_file_name( wp_hash( CASHU_WC_BASE ) ) .
 		'-log';
 		return esc_url( admin_url( 'admin.php?page=wc-status&tab=logs&log_file=' . $log_file ) );
 	}

@@ -68,7 +68,7 @@ final class CashuWCPlugin {
 		add_action( 'wp_ajax_cashu_notifications', array( $this, 'processAjaxNotification' ) );
 
 		// Plugin list action links.
-		add_filter( 'plugin_action_links_' . CASHU_WC_PLUGIN_FILE_PATH, array( $this, 'addPluginActionLinks' ) );
+		add_filter( 'plugin_action_links_' . CASHU_WC_BASE, array( $this, 'addPluginActionLinks' ) );
 
 		// Admin only items.
 		if ( is_admin() ) {
@@ -78,7 +78,7 @@ final class CashuWCPlugin {
 	}
 
 	private function includes(): void {
-		$autoloader = CASHU_WC_PLUGIN_FILE_PATH . 'vendor/autoload.php';
+		$autoloader = CASHU_WC_PATH . 'vendor/autoload.php';
 		if ( file_exists( $autoloader ) ) {
 			require_once $autoloader;
 		}
@@ -93,7 +93,7 @@ final class CashuWCPlugin {
 		load_plugin_textdomain(
 			'cashu-for-woocommerce',
 			false,
-			dirname( CASHU_WC_PLUGIN_FILE_PATH ) . '/languages/'
+			dirname( CASHU_WC_BASE ) . '/languages/'
 		);
 	}
 
@@ -114,12 +114,12 @@ final class CashuWCPlugin {
 		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
 				'custom_order_tables',
-				CASHU_WC_PLUGIN_FILE_PATH,
+				CASHU_WC_FILE,
 				true
 			);
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
 				'cart_checkout_blocks',
-				CASHU_WC_PLUGIN_FILE_PATH,
+				CASHU_WC_FILE,
 				true
 			);
 		}
@@ -142,7 +142,7 @@ final class CashuWCPlugin {
 	public function enqueueAdminScripts(): void {
 		wp_enqueue_script(
 			'cashu-notifications',
-			CASHU_WC_PLUGIN_URL . 'assets/js/backend/notifications.js',
+			CASHU_WC_URL . 'assets/js/backend/notifications.js',
 			array( 'jquery' ),
 			CASHU_WC_VERSION,
 			true
@@ -159,7 +159,7 @@ final class CashuWCPlugin {
 
 	public function processAjaxNotification(): void {
 		if ( ! check_ajax_referer( 'cashu-notifications-nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized' ), 401 );
+			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'cashu-for-woocommerce' ) ), 401 );
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -186,25 +186,34 @@ final class CashuWCPlugin {
 			Notice::addNotice(
 				'error',
 				sprintf(
-					'Your PHP version is %s but Cashu Payment plugin requires version 7.4+.',
+					/* translators: 1: PHP Version string. */
+					__( 'Your PHP version is %s but Cashu Payment plugin requires version 7.4+.', 'cashu-for-woocommerce' ),
 					PHP_VERSION
 				)
 			);
 		}
 
 		if ( ! is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
-			Notice::addNotice( 'error', 'WooCommerce seems to be not installed. Make sure you do before you activate Cashu Payment Gateway.' );
+			Notice::addNotice(
+				'error',
+				__( 'WooCommerce does not appear to be installed. Make sure you do before you activate Cashu Payment Gateway.', 'cashu-for-woocommerce' )
+			);
+
 		}
 
 		if ( ! function_exists( 'curl_init' ) ) {
-			Notice::addNotice( 'error', 'The PHP cURL extension is not installed. Make sure it is available otherwise this plugin will not work.' );
+			Notice::addNotice(
+				'error',
+				__( 'The PHP cURL extension is not installed. Make sure it is available otherwise this plugin will not work.', 'cashu-for-woocommerce' )
+			);
 		}
 	}
 
 	private function notConfiguredNotification(): void {
 		if ( ! CashuHelper::getConfig() ) {
 			$message = sprintf(
-				'Plugin not configured yet, please %1$sconfigure the plugin here%2$s',
+				/* translators: 1: opening <a> tag to settings page 2: closing </a> tag */
+				__( 'Plugin not configured yet, please %1$sconfigure the plugin here%2$s', 'cashu-for-woocommerce' ),
 				'<a href="' . esc_url( admin_url( 'admin.php?page=wc-settings&tab=cashu_settings' ) ) . '">',
 				'</a>'
 			);
@@ -219,7 +228,8 @@ final class CashuWCPlugin {
 		}
 
 		$reviewMessage = sprintf(
-			'Thank you for using Cashu for WooCommerce! If you like the plugin, we would love if you %1$sleave us a review%2$s. %3$sRemind me later%4$s %5$sStop reminding me forever%6$s',
+			/* translators: 1: opening <a> tag to the WordPress.org review page, 2: closing </a> tag, 3: opening <button> tag for "remind me later", 4: closing </button> tag, 5: opening <button> tag for "stop reminding forever", 6: closing </button> tag. Do not translate the HTML tags, keep the placeholder numbers. */
+			__( 'Thank you for using Cashu for WooCommerce! If you like the plugin, we would love if you %1$sleave us a review%2$s. %3$sRemind me later%4$s %5$sStop reminding me forever%6$s', 'cashu-for-woocommerce' ),
 			'<a href="https://wordpress.org/support/plugin/cashu-for-woocommerce/reviews/?filter=5#new-post" target="_blank" rel="noopener noreferrer">',
 			'</a>',
 			'<button class="cashu-review-dismiss" type="button">',
@@ -241,20 +251,20 @@ final class CashuWCPlugin {
 
 		switch ( $status ) {
 			case 'pending':
-				$statusDesc = 'Waiting payment';
+				$statusDesc = __( 'Waiting payment', 'cashu-for-woocommerce' );
 				break;
 			case 'on-hold':
-				$statusDesc = 'Waiting for payment settlement';
+				$statusDesc = __( 'Waiting for payment settlement', 'cashu-for-woocommerce' );
 				break;
 			case 'processing':
-				$statusDesc = 'Payment settled';
+				$statusDesc = __( 'Payment settled', 'cashu-for-woocommerce' );
 				break;
 			case 'completed':
-				$statusDesc = 'Order completed';
+				$statusDesc = __( 'Order completed', 'cashu-for-woocommerce' );
 				break;
 			case 'failed':
 			case 'cancelled':
-				$statusDesc = 'Payment failed';
+				$statusDesc = __( 'Payment failed', 'cashu-for-woocommerce' );
 				break;
 			default:
 				$statusDesc = ucfirst( $status );
@@ -262,7 +272,7 @@ final class CashuWCPlugin {
 		}
 
 		echo '<section class="woocommerce-order-payment-status">';
-		echo '<h2 class="woocommerce-order-payment-status-title">Order Status</h2>';
+		echo '<h2 class="woocommerce-order-payment-status-title">' . esc_html__( 'Order Status', 'cashu-for-woocommerce' ) . '</h2>';
 		echo '<p><strong>' . esc_html( $statusDesc ) . '</strong></p>';
 		echo '</section>';
 	}
@@ -303,19 +313,25 @@ final class CashuWCPlugin {
 			)
 		);
 
-		$settings_link = sprintf( '<a href="%s">Settings</a>', $settings_url );
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			$settings_url,
+			esc_html__( 'Settings', 'cashu-for-woocommerce' )
+		);
 
 		$logs_link = '';
 		if ( class_exists( Logger::class ) && method_exists( Logger::class, 'getLogFileUrl' ) ) {
 			$logs_link = sprintf(
-				'<a href="%s" target="_blank" rel="noopener noreferrer">Debug log</a>',
-				esc_url( Logger::getLogFileUrl() )
+				'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+				esc_url( Logger::getLogFileUrl() ),
+				esc_html__( 'Debug log', 'cashu-for-woocommerce' )
 			);
 		}
 
 		$docs_link = sprintf(
-			'<a href="%s" target="_blank" rel="noopener noreferrer">Docs</a>',
-			esc_url( 'https://cashu.space' )
+			'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+			esc_url( 'https://cashu.space' ),
+			esc_html__( 'Docs', 'cashu-for-woocommerce' )
 		);
 
 		$prepend = array_filter( array( $settings_link, $logs_link, $docs_link ) );
