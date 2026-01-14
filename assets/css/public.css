@@ -15,7 +15,7 @@
   font-family: inherit;
   line-height: 1.35;
   margin: 24px auto;
-  max-width: 520px;
+  max-width: 360px;
   padding: 24px 18px;
 }
 
@@ -29,7 +29,7 @@
 }
 
 .cashu-amount-box {
-  margin: 0 0 10px;
+  margin: 0;
 }
 
 .cashu-amount {
@@ -37,7 +37,7 @@
   font-weight: 750;
   letter-spacing: 0.2px;
   line-height: 1.05;
-  margin: 6px 0 10px;
+  margin: 6px 0;
 }
 
 .cashu-payamount,
@@ -45,7 +45,7 @@
 .payment-details {
   color: var(--cashu-muted);
   font-size: 0.9rem;
-  margin: 12px 0 8px;
+  margin: 6px 0;
   text-align: center;
 }
 
@@ -81,7 +81,7 @@
   cursor: pointer;
   display: inline-flex;
   font-size: 0.9rem;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
 }
 
 .payment-chevron {
@@ -95,15 +95,12 @@
 }
 
 .cashu-box {
-  margin: 14px auto 0;
+  margin: 0 auto;
   max-width: 440px;
 }
 
 .cashu-qr-wrap {
   background: #fff;
-  border: 1px solid var(--cashu-border);
-  border-radius: 16px;
-  padding: 16px;
   position: relative;
 }
 

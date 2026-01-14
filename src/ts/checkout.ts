@@ -315,8 +315,8 @@ jQuery(function ($) {
     el.innerHTML = '';
     new QRCode(el, {
       text: 'lightning:' + mq.request,
-      width: 360,
-      height: 360,
+      width: 300,
+      height: 300,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.Q,
