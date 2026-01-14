@@ -260,7 +260,7 @@ Cashu For WooCommerce is prepared for translation using the `cashu-for-woocommer
 
 When adding or updating strings in PHP
 
-* Use standard WordPress translation functions, for example `__()`, `_e()`, `_x()`, `esc_html__()`, `esc_attr__()` and so on
+* Use standard WordPress translation functions, for example `__()`, `_e()`, `_x()`, `esc_html__()`, `esc_html_e()`, `esc_attr__()` and so on
 * Always pass `cashu-for-woocommerce` as the text domain
 
 Example
@@ -275,7 +275,15 @@ If you are unsure whether your strings are correctly set up, run
 npm run i18n
 ```
 
-which will update text domains where needed and regenerate the pot file.
+which will update text domains where needed and regenerate the main pot file.
+
+When you have updated localized translations (eg: `cashu-for-woocommerce-fr_FR.po`), run
+
+```bash
+npm run i18n:mo
+```
+
+to create the `.mo` files.
 
 ## Development workflow
 

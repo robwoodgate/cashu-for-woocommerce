@@ -622,23 +622,23 @@ class CashuGateway extends \WC_Payment_Gateway {
 				<div id="<?php echo esc_attr( $details_id ); ?>" class="payment-details js-payment-details" style="display:none;">
 					<dl class="payment-dl">
 						<div class="payment-row">
-							<dt>Total Price</dt>
+							<dt><?php esc_html_e( 'Total Price', 'cashu-for-woocommerce' ); ?></dt>
 							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $invoice_total ); ?></dd>
 						</div>
 
 						<div class="payment-row">
-							<dt>Network Cost (est)</dt>
+							<dt><?php esc_html_e( 'Network Cost (est)', 'cashu-for-woocommerce' ); ?></dt>
 							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_fees_sats ); ?></dd>
 						</div>
 
 						<div class="payment-row">
-							<dt>Amount Due</dt>
+							<dt><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></dt>
 							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
 						</div>
 					</dl>
 					<div class="payment-row">
 						<?php
-						echo esc_html__( 'Change will be given if network cost is less than estimated.', 'cashu-for-woocommerce' );
+						esc_html_e( 'Change will be given if network cost is less than estimated.', 'cashu-for-woocommerce' );
 						?>
 					</div>
 				</div>
@@ -649,7 +649,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					aria-controls="<?php echo esc_attr( $details_id ); ?>"
 					aria-expanded="false"
 				>
-					View Details
+					<?php esc_html_e( 'View Details', 'cashu-for-woocommerce' ); ?>
 					<svg class="payment-chevron" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
 					<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 					</svg>
@@ -671,7 +671,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					</div>
 				</div>
 
-				<div class="cashu-sep"><span><?php echo esc_html__( 'OR', 'cashu-for-woocommerce' ); ?></span></div>
+				<div class="cashu-sep"><span><?php esc_html_e( 'OR', 'cashu-for-woocommerce' ); ?></span></div>
 
 				<form class="cashu-token">
 					<input
@@ -683,7 +683,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 						data-cashu-token-input
 					/>
 					<button type="submit" class="cashu-paybtn">
-						<?php echo esc_html__( 'Pay', 'cashu-for-woocommerce' ); ?>
+						<?php esc_html_e( 'Pay', 'cashu-for-woocommerce' ); ?>
 					</button>
 				</form>
 				<div class="cashu-feenote">
