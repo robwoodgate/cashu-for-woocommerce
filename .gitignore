@@ -1,4 +1,5 @@
 .DS_Store
+assets/js/cashu/
 debug.log
 phpcs.xml
 phpunit.xml

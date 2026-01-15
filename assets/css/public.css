@@ -74,7 +74,8 @@
   margin: 0;
 }
 
-.payment-details-toggle {
+.payment-details-toggle,
+.payment-details-toggle:hover {
   background: transparent;
   border: 0;
   color: var(--cashu-accent);
@@ -193,7 +194,8 @@
   outline: none;
 }
 
-.cashu-paybtn {
+.cashu-paybtn,
+.cashu-paybtn:hover {
   appearance: none;
   background: var(--cashu-accent);
   border: 0;
@@ -205,6 +207,10 @@
   font-weight: 750;
   margin-top: 14px;
   padding: 14px 16px;
+}
+
+.cashu-paybtn:hover {
+  opacity: 0.9;
 }
 
 .cashu-paybtn:disabled {

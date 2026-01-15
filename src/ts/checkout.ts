@@ -459,6 +459,7 @@ jQuery(function ($) {
     if (amount < required) {
       const symbol = window.cashu_wc?.symbol ?? '₿';
       setStatus(t('token_too_small', symbol, amount, required, meltFees), true);
+      await delay(500);
       return;
     }
 
