@@ -59,8 +59,15 @@ jobs:
         run: |
           command -v zip >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y zip)
 
+      - name: Start wp-env
+        run: npx wp-env start
+
       - name: Build via build.sh
         run: bash ./build.sh
+
+      - name: Stop wp-env
+        if: always()
+        run: npx wp-env stop
 
       - name: Upload zip to GitHub Release
         uses: softprops/action-gh-release@v2

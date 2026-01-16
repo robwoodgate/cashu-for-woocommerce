@@ -1,10 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
 pkg="cashu-for-woocommerce.zip" # plugin name
 
 # Build packages
 composer install
-npm ci
+npm ci --include=dev
 npm run build
 npm run i18n:mo
 
