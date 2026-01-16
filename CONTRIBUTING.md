@@ -277,10 +277,14 @@ npm run i18n
 
 which will update text domains where needed and regenerate the main pot file.
 
-When you have updated localized translations (eg: `cashu-for-woocommerce-fr_FR.po`), run
+When you have updated localized translations (eg: `cashu-for-woocommerce-fr_FR.po`), run either:
 
 ```bash
+# Via wp-env (using wp-cli)
 npm run i18n:mo
+
+# Via the main build script (using gettext)
+./build.sh
 ```
 
 to create the `.mo` files.
