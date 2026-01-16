@@ -292,15 +292,15 @@
   background: transparent;
   border: 1px solid var(--cashu-border);
   border-radius: 9999px;
-  color: var(--cashu-muted);
+  color: var(--cashu-warning);
   cursor: pointer;
   font: inherit;
   padding: 6px 10px;
 }
 
 .cashu-change-dismiss:hover {
-  color: var(--cashu-warning);
-  font-weight: bolder;
+  background: var(--cashu-warning);
+  color: var(--cashu-surface);
 }
 
 .cashu-change-lead {
