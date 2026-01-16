@@ -8,7 +8,7 @@
     "cashu"
   ],
   "dependencies": {
-    "@cashu/cashu-ts": "file:../cashu-ts-upstream/",
+    "@cashu/cashu-ts": "^3.2.2",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4"
   },
