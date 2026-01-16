@@ -13,7 +13,7 @@
 
 Cashu For WooCommerce adds a secure Cashu payment gateway to your WooCommerce store.
 
-It allows you to receive private bitcoin payments using Cashu ecash, which is then automatically converted (melted) and sent to your bitcoin lightning address.
+It allows you to receive private bitcoin payments using Cashu ecash, which is then automatically converted (melted) and sent to your bitcoin lightning address. It also allows you to receive bitcoin lighting payments from regular bitcoin wallets.
 
 The following payment flows are available:
 

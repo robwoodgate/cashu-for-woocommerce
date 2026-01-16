@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cashu For WooCommerce
  * Plugin URI:  https://www.github.com/robwoodgate
- * Description: Cashu is a free and open source ecash protocol for Bitcoin, this plugin allows you to receive Cashu payments in Bitcoin, directly to your lightning address, with no fees or transaction costs.
+ * Description: This plugin adds a secure Cashu payment gateway to your WooCommerce store, allowing you to receive bitcoin ecash payments to your lightning address.
  * Author:      Rob Woodgate
  * Author URI:  https://www.github.com/robwoodgate
  * License:     MIT
