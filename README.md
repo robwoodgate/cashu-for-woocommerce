@@ -51,7 +51,7 @@ Payments in Cashu ecash are melted to bitcoin and send via lightning in real tim
 ## Changelog ##
 
 ### 0.1.0 ###
-Initial developer release.
+First public release. Test carefully, don't be reckless.
 
 ## Upgrade Notice ##
 
