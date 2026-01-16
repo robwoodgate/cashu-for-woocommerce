@@ -125,6 +125,20 @@ msgstr ""
 "serions ravis que vous %1$snous laissiez un avis%2$s. %3$sMe le rappeler plus "
 "tard%4$s %5$sNe plus me le rappeler%6$s"
 
+#: src/CashuWCPlugin.php:233
+#. translators: 1: opening <a> tag to the donation page, 2: closing </a> tag,
+#. 3: opening <button> tag for "remind me later", 4: closing </button> tag, 5:
+#. opening <button> tag for "stop reminding forever", 6: closing </button> tag.
+#. Do not translate the HTML tags, keep the placeholder numbers.
+msgid ""
+"Thank you for using Cashu for WooCommerce! If you like the plugin, "
+"%1$splease buy the developer a coffee%2$s. %3$sRemind me later%4$s %5$sStop "
+"reminding me forever%6$s"
+msgstr ""
+"Merci d'utiliser Cashu pour WooCommerce ! Si vous aimez l’extension, "
+"%1$soffrez un café au développeur%2$s. %3$sMe le rappeler plus tard%4$s "
+"%5$sNe plus me le rappeler%6$s"
+
 #: src/CashuWCPlugin.php:254
 msgid "Waiting payment"
 msgstr "En attente de paiement"
