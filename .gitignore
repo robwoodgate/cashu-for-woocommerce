@@ -12,3 +12,4 @@ var/
 *.sql
 *.tar.gz
 *.zip
+languages/*.mo
