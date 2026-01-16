@@ -6,8 +6,10 @@ pkg="cashu-for-woocommerce.zip" # plugin name
 # Build packages
 composer install
 npm ci --include=dev
+npm run wp-env:start
 npm run build
 npm run i18n:mo
+npm run wp-env:destroy
 
 # Create plugin
 rm -f ${pkg}
