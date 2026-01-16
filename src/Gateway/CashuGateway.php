@@ -416,12 +416,13 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		$order->add_order_note(
 			sprintf(
-				/* translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total required sats */
-				__( "Cashu melt quote created:\nInvoice: %1\$s\nLightning fee reserve: %2\$s\nMint fee reserve: %3\$s\nTotal: %4\$s", 'cashu-for-woocommerce' ),
+				/* translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total required sats, %4$s: Melt Quote ID */
+				__( "Cashu melt quote created:\nInvoice: %1\$s\nLightning fee reserve: %2\$s\nMint fee reserve: %3\$s\nTotal: %4\$s\nQuote ID: %5\$s", 'cashu-for-woocommerce' ),
 				(string) CASHU_WC_BIP177_SYMBOL . $amount,
 				(string) CASHU_WC_BIP177_SYMBOL . $fee_reserve,
 				(string) CASHU_WC_BIP177_SYMBOL . $ppk_fee,
-				(string) CASHU_WC_BIP177_SYMBOL . $total
+				(string) CASHU_WC_BIP177_SYMBOL . $total,
+				$quote_id,
 			)
 		);
 	}

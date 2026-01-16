@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
-"POT-Creation-Date: 2026-01-16 22:09:39+00:00\n"
+"POT-Creation-Date: 2026-01-16 22:25:56+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -354,7 +354,7 @@ msgstr ""
 msgid "Amount: %1$s%2$d, %3$s"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:272 src/Gateway/CashuGateway.php:588
+#: src/Gateway/CashuGateway.php:272 src/Gateway/CashuGateway.php:589
 msgid "Cashu payment setup failed, please try again."
 msgstr ""
 
@@ -366,60 +366,61 @@ msgstr ""
 
 #: src/Gateway/CashuGateway.php:420
 #. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
-#. required sats
+#. required sats, %4$s: Melt Quote ID
 msgid ""
 "Cashu melt quote created:\n"
 "Invoice: %1$s\n"
 "Lightning fee reserve: %2$s\n"
 "Mint fee reserve: %3$s\n"
-"Total: %4$s"
+"Total: %4$s\n"
+"Quote ID: %5$s"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:567
+#: src/Gateway/CashuGateway.php:568
 msgid "Order not found."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:614
+#: src/Gateway/CashuGateway.php:615
 msgid "Cashu payment"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:616 src/Gateway/CashuGateway.php:635
+#: src/Gateway/CashuGateway.php:617 src/Gateway/CashuGateway.php:636
 msgid "Amount Due"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:625
+#: src/Gateway/CashuGateway.php:626
 msgid "Total Price"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:630
+#: src/Gateway/CashuGateway.php:631
 msgid "Network Cost (est)"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:641
+#: src/Gateway/CashuGateway.php:642
 msgid "Change will be given if network cost is less than estimated."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:652
+#: src/Gateway/CashuGateway.php:653
 msgid "View Details"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:661
+#: src/Gateway/CashuGateway.php:662
 msgid "Status: Waiting for payment..."
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:674
+#: src/Gateway/CashuGateway.php:675
 msgid "OR"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:682
+#: src/Gateway/CashuGateway.php:683
 msgid "Enter your cashu token…"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:686
+#: src/Gateway/CashuGateway.php:687
 msgid "Pay"
 msgstr ""
 
-#: src/Gateway/CashuGateway.php:693
+#: src/Gateway/CashuGateway.php:694
 #. translators: %1$s: Mint hostname
 msgid "Tokens accepted from any mint, but fees will be lowest if you use: %1$s"
 msgstr ""

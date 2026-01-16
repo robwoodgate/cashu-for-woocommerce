@@ -392,20 +392,22 @@ msgstr "Cotation Cashu : %1$s%2$s (BTC/%3$s : %4$s) via %5$s"
 
 #: src/Gateway/CashuGateway.php:420
 #. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
-#. required sats
+#. required sats, %4$s: Melt Quote ID
 #, php-format
 msgid ""
 "Cashu melt quote created:\n"
 "Invoice: %1$s\n"
 "Lightning fee reserve: %2$s\n"
 "Mint fee reserve: %3$s\n"
-"Total: %4$s"
+"Total: %4$s\n"
+"Quote ID: %5$s"
 msgstr ""
 "Devis de fusion Cashu créé :\n"
 "Facture : %1$s\n"
 "Réserve de frais Lightning : %2$s\n"
 "Réserve de frais du mint : %3$s\n"
-"Total : %4$s"
+"Total : %4$s\n"
+"Référence du devis : %5$s"
 
 #: src/Gateway/CashuGateway.php:567
 msgid "Order not found."
