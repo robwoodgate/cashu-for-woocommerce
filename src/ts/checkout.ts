@@ -295,8 +295,8 @@ jQuery(function ($) {
 
   async function startAsyncProcesses(): Promise<void> {
     void renderQr();
-    void pollOrderStatus();
     void startMintQuoteWatcher();
+    void run(() => checkOrderStatus());
     const token = localStorage.getItem(ls.recovery);
     if (token) {
       payFromToken(token).catch((e) => {
@@ -618,6 +618,7 @@ jQuery(function ($) {
     void saveProofs(changeProofs, trustedWallet);
 
     setStatus(t('confirming_payment'));
+    void pollOrderStatus();
   }
 
   // ------------------------------
