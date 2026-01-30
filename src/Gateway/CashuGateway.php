@@ -160,7 +160,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 					/* translators: 1: bitcoin symbol, 2: token amount (sats), 3: required amount (sats), 4: fees (sats) */
 					'token_too_small'      => __(
-						"Token amount (%1\$s%2\$d) is too small. At least %1\$s%3\$d is required to cover your mint's fees (%1\$s%4\$d)",
+						"Token amount (%1\$s%2\$d) is too small. At least %1\$s%3\$d is required to cover your mint's fee reserve (%1\$s%4\$d)",
 						'cashu-for-woocommerce'
 					),
 
@@ -386,7 +386,12 @@ class CashuGateway extends \WC_Payment_Gateway {
 		}
 
 		// Create LN invoice for the headline order amount (merchant receives this).
-		$invoice = LightningAddress::get_invoice( $this->ln_address, $order_total_sats );
+		$comment = sprintf(
+			/* translators: %1$s: Order ID  */
+			__( 'Order: #%1$s', 'cashu-for-woocommerce' ),
+			(string) $order->get_id()
+		);
+		$invoice = LightningAddress::get_invoice( $this->ln_address, $order_total_sats, $comment );
 		if ( ! is_string( $invoice ) || '' === $invoice ) {
 			throw new \RuntimeException( 'Failed to obtain Lightning invoice.' );
 		}
@@ -409,10 +414,12 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->update_meta_data( '_cashu_melt_mint', $this->trusted_mint );
 
 		// Headline amount the customer must cover.
-		$ppk_fee = $this->estimate_input_fee_sats( $amount + $fee_reserve );
-		$total   = $amount + $fee_reserve + $ppk_fee;
-		$order->update_meta_data( '_cashu_melt_total', $total );
-		$order->update_meta_data( '_cashu_melt_fees', $fee_reserve + $ppk_fee );
+		// $ppk_fee = $this->estimate_input_fee_sats( $amount + $fee_reserve );
+		$melt_total = $amount + $fee_reserve;
+		$ppk_fee    = max( 2, ceil( $melt_total * 0.02 ) );
+		$order->update_meta_data( '_cashu_melt_total', $melt_total );
+		$order->update_meta_data( '_cashu_melt_fees', $ppk_fee );
+		$total = $melt_total + $ppk_fee;
 
 		$order->add_order_note(
 			sprintf(
@@ -592,7 +599,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 		$pay_amount_sats = absint( $order->get_meta( '_cashu_melt_total', true ) );
 		$pay_fees_sats   = absint( $order->get_meta( '_cashu_melt_fees', true ) );
-		$invoice_total   = $pay_amount_sats - $pay_fees_sats;
+		$pay_total       = $pay_amount_sats + $pay_fees_sats;
 		$quote_id        = (string) $order->get_meta( '_cashu_melt_quote_id', true );
 		$trusted_mint    = (string) $order->get_meta( '_cashu_melt_mint', true );
 
@@ -604,7 +611,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			data-order-id="' . esc_attr( $order_id ) . '"
 			data-order-key="' . esc_attr( $order->get_order_key() ) . '"
 			data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"
-			data-pay-amount-sats="' . esc_attr( $pay_amount_sats ) . '"
+			data-pay-amount-sats="' . esc_attr( $pay_total ) . '"
 			data-pay-fees-sats="' . esc_attr( $pay_fees_sats ) . '"
 			data-melt-quote-id="' . esc_attr( $quote_id ) . '"
 			data-spot-quote-expiry="' . esc_attr( $spot_expiry ) . '"
@@ -616,7 +623,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			<div class="cashu-amount-box cashu-center">
 				<div class="cashu-payamount"><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></div>
 				<h2 class="cashu-amount">
-					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?>
+					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_total ); ?>
 				</h2>
 
 				<?php $details_id = 'payment-details-' . sanitize_key( $order_id ); ?>
@@ -624,7 +631,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					<dl class="payment-dl">
 						<div class="payment-row">
 							<dt><?php esc_html_e( 'Total Price', 'cashu-for-woocommerce' ); ?></dt>
-							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $invoice_total ); ?></dd>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
 						</div>
 
 						<div class="payment-row">
@@ -634,7 +641,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 
 						<div class="payment-row">
 							<dt><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></dt>
-							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_total ); ?></dd>
 						</div>
 					</dl>
 					<div class="payment-row">

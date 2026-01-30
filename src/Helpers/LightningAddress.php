@@ -14,17 +14,18 @@ class LightningAddress {
 	 *
 	 * @param string $address     Lightning address eg "you@example.com" or a BOLT11 invoice.
 	 * @param int    $amount_sats amount in sats
+	 * @param string|null $comment Optional comment (if supported by LN address)
 	 *
 	 * @throws \RuntimeException when the address is invalid or the LNURL flow fails
 	 */
-	public static function get_invoice( string $address, int $amount_sats ): string {
+	public static function get_invoice( string $address, int $amount_sats, ?string $comment = null ): string {
 		$address = trim( $address );
 
 		// If it already looks like a BOLT11, just return it.
 		if (
-		0 === stripos( $address, 'lnbc' ) || // mainnet
-		0 === stripos( $address, 'lntb' ) || // testnet
-		0 === stripos( $address, 'lnbcrt' )  // regtest (local)
+			0 === stripos( $address, 'lnbc' ) || // mainnet
+			0 === stripos( $address, 'lntb' ) || // testnet
+			0 === stripos( $address, 'lnbcrt' )  // regtest (local)
 		) {
 			return $address;
 		}
@@ -33,7 +34,7 @@ class LightningAddress {
 			throw new \RuntimeException( 'Invalid Lightning address.' );
 		}
 
-		[$name, $host] = explode( '@', $address, 2 );
+		[ $name, $host ] = explode( '@', $address, 2 );
 
 		$lnurlp_url = sprintf(
 			'https://%s/.well-known/lnurlp/%s',
@@ -41,12 +42,7 @@ class LightningAddress {
 			rawurlencode( $name )
 		);
 
-		$meta_response = wp_remote_get(
-			$lnurlp_url,
-			array(
-				'timeout' => 15,
-			)
-		);
+		$meta_response = wp_remote_get( $lnurlp_url, array( 'timeout' => 15 ) );
 
 		if ( is_wp_error( $meta_response ) ) {
 			throw new \RuntimeException( 'Failed to fetch LNURL metadata.' );
@@ -61,19 +57,35 @@ class LightningAddress {
 
 		$amount_msat = $amount_sats * 1000;
 
-		$invoice_url = add_query_arg(
-			array(
-				'amount' => $amount_msat,
-			),
-			$meta_body['callback']
+		$query_args = array(
+			'amount' => $amount_msat,
 		);
 
-		$inv_response = wp_remote_get(
-			$invoice_url,
-			array(
-				'timeout' => 15,
-			)
-		);
+		$comment_allowed = isset( $meta_body['commentAllowed'] ) ? (int) $meta_body['commentAllowed'] : 0;
+
+		if ( null !== $comment ) {
+			$comment = trim( $comment );
+
+			if ( '' !== $comment && $comment_allowed > 0 ) {
+				// Enforce max length, safest behaviour is truncate.
+				if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+					if ( mb_strlen( $comment, 'UTF-8' ) > $comment_allowed ) {
+						$comment = mb_substr( $comment, 0, $comment_allowed, 'UTF-8' );
+					}
+				} elseif ( strlen( $comment ) > $comment_allowed ) {
+						$comment = substr( $comment, 0, $comment_allowed );
+				}
+
+				$query_args['comment'] = $comment;
+			}
+		}
+
+		$query       = http_build_query( $query_args, '', '&', PHP_QUERY_RFC3986 );
+		$invoice_url = $meta_body['callback']
+			. ( str_contains( $meta_body['callback'], '?' ) ? '&' : '?' )
+			. $query;
+
+		$inv_response = wp_remote_get( $invoice_url, array( 'timeout' => 15 ) );
 
 		if ( is_wp_error( $inv_response ) ) {
 			throw new \RuntimeException( 'Failed to request invoice.' );
@@ -87,45 +99,5 @@ class LightningAddress {
 		}
 
 		return $inv_body['pr'];
-	}
-
-	private function fetch_ln_invoice( int $amount_sats ): ?string {
-		$destination = trim( (string) get_option( 'cashu_lightning_address', '' ) );
-		if ( '' === $destination ) {
-			return null;
-		}
-
-		// Lightning address.
-		if ( str_contains( $destination, '@' ) ) {
-			$parts = explode( '@', $destination );
-			if ( 2 !== count( $parts ) ) {
-				return null;
-			}
-			$url  = 'https://' . $parts[1] . '/.well-known/lnurlp/' . $parts[0];
-			$resp = wp_remote_get( $url );
-			if ( is_wp_error( $resp ) ) {
-				Logger::debug( 'Lightning address lnurlp error, ' . $resp->get_error_message() );
-
-				return null;
-			}
-			$data = json_decode( wp_remote_retrieve_body( $resp ), true );
-			if ( empty( $data['callback'] ) ) {
-				return null;
-			}
-
-			$callback = add_query_arg( 'amount', $amount_sats * 1000, $data['callback'] );
-			$resp     = wp_remote_get( $callback );
-			if ( is_wp_error( $resp ) ) {
-				Logger::debug( 'Lightning address callback error, ' . $resp->get_error_message() );
-
-				return null;
-			}
-			$json = json_decode( wp_remote_retrieve_body( $resp ), true );
-
-			return isset( $json['pr'] ) ? (string) $json['pr'] : null;
-		}
-
-		// Anything else (raw invoice, bad config, etc) is unsupported for now
-		return null;
 	}
 }

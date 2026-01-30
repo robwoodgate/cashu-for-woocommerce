@@ -273,10 +273,10 @@ msgstr "Calcul des frais de votre mint…"
 #, php-format
 msgid ""
 "Token amount (%1$s%2$d) is too small. At least %1$s%3$d is required to "
-"cover your mint's fees (%1$s%4$d)"
+"cover your mint's fee reserve (%1$s%4$d)"
 msgstr ""
 "Le montant du jeton (%1$s%2$d) est trop faible. Au moins %1$s%3$d est "
-"nécessaire pour couvrir les frais de votre mint (%1$s%4$d)"
+"nécessaire pour couvrir les frais de réserve de votre mint (%1$s%4$d)"
 
 #: src/Gateway/CashuGateway.php:167
 msgid "Sending payment to our mint..."
@@ -389,6 +389,11 @@ msgstr "La préparation du paiement Cashu a échoué, veuillez réessayer."
 #, php-format
 msgid "Cashu quote: %1$s%2$s (BTC/%3$s: %4$s) from %5$s"
 msgstr "Cotation Cashu : %1$s%2$s (BTC/%3$s : %4$s) via %5$s"
+
+#: src/Gateway/CashuGateway.php:391
+#. translators: %1$s: Order ID
+msgid "Order: #%1$s"
+msgstr "Commande : #%1$s"
 
 #: src/Gateway/CashuGateway.php:420
 #. translators: %1$s: sats invoice amount, %2$s: fee reserve sats, %3$s: total
