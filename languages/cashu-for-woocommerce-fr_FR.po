@@ -2,7 +2,7 @@
 # This file is distributed under the MIT.
 msgid ""
 msgstr ""
-"Project-Id-Version: Cashu For WooCommerce 0.1.0\n"
+"Project-Id-Version: Cashu For WooCommerce 0.1.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/cashu-for-woocommerce\n"
 "POT-Creation-Date: 2026-01-14 21:45:11+00:00\n"
 "PO-Revision-Date: 2026-01-14 21:45:11+00:00\n"

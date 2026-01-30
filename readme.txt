@@ -5,7 +5,7 @@ Tags: payments, bitcoin, lightning, checkout, cashu
 Requires at least: 6.5
 Tested up to: 6.8.3
 Requires PHP: 8.3
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: MIT
 License URI: https://github.com/robwoodgate/cashu-for-woocommerce/blob/main/license.txt
 
@@ -49,6 +49,10 @@ No, the plugin requires only your public lightning address.
 Payments in Cashu ecash are melted to bitcoin and send via lightning in real time, so no sensitive keys are required on the server.
 
 == Changelog ==
+
+= 0.1.1 =
+Adds comment to LN invoice (if supported)
+Tweaks total / fee display
 
 = 0.1.0 =
 First public release. Test carefully, don't be reckless.
