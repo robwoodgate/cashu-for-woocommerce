@@ -415,7 +415,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->update_meta_data( '_cashu_melt_mint', $this->trusted_mint );
 
 		// Headline amount the customer must cover.
-		// $ppk_fee = $this->estimate_input_fee_sats( $amount + $fee_reserve );
 		$melt_total = $amount + $fee_reserve;
 		$ppk_fee    = max( 2, ceil( $melt_total * 0.02 ) );
 		$order->update_meta_data( '_cashu_melt_total', $melt_total );
@@ -471,103 +470,6 @@ class CashuGateway extends \WC_Payment_Gateway {
 		}
 
 		return $json;
-	}
-
-	/**
-	 * Get the maximum input_fee_ppk for active "sat" unit keysets from the trusted mint.
-	 * Result is cached per mint URL for 1 hour.
-	 */
-	private function get_max_input_fee_ppk(): int {
-		// Return cached if available
-		$transient_key = 'cashu_max_sat_input_fee_ppk_' . md5( $this->trusted_mint );
-		$cached        = get_transient( $transient_key );
-		if ( false !== $cached && is_numeric( $cached ) ) {
-			return (int) $cached;
-		}
-
-		// Setup and make request
-		$endpoint = $this->trusted_mint . '/v1/keysets';
-		$res      = wp_remote_get(
-			$endpoint,
-			array(
-				'timeout' => 10,
-				'headers' => array(
-					'Accept'       => 'application/json',
-					'Content-Type' => 'application/json',
-				),
-			)
-		);
-		if ( is_wp_error( $res ) ) {
-			throw new \RuntimeException( 'Mint keysets request failed: ' . esc_html( sanitize_text_field( $res->get_error_message() ) ) );
-		}
-		$code = (int) wp_remote_retrieve_response_code( $res );
-		if ( $code < 200 || $code >= 300 ) {
-			throw new \RuntimeException( 'Mint keysets request failed, HTTP ' . esc_html( (string) $code ) );
-		}
-		$body = wp_remote_retrieve_body( $res );
-		$json = json_decode( $body, true );
-		if ( ! is_array( $json ) || ! isset( $json['keysets'] ) || ! is_array( $json['keysets'] ) ) {
-			throw new \RuntimeException( 'Invalid mint keysets response.' );
-		}
-
-		// Filter active sat keysets
-		$fees = array_column(
-			array_filter(
-				$json['keysets'],
-				fn( $ks ) => is_array( $ks )
-					&& ( $ks['unit'] ?? '' ) === 'sat'
-					&& isset( $ks['input_fee_ppk'] )
-					&& is_numeric( $ks['input_fee_ppk'] )
-			),
-			'input_fee_ppk'
-		);
-		if ( empty( $fees ) ) {
-			throw new \RuntimeException( 'No sat keysets with input_fee_ppk found.' );
-		}
-
-		// Cache and return
-		$max_fee = absint( max( $fees ) );
-		set_transient( $transient_key, $max_fee, HOUR_IN_SECONDS );
-		return $max_fee;
-	}
-
-	private function proof_count_optimal_split( int $amount ): int {
-		if ( $amount <= 0 ) {
-			return 1;
-		}
-		$count = 0;
-		while ( $amount ) {
-			++$count;
-			$amount &= ( $amount - 1 ); // clears the lowest set bit
-		}
-		return $count ?: 1;
-	}
-
-	/**
-	 * Estimate input fee reserve in sats for paying a given amount using an
-	 * optimal split, but using the maximum input_fee_ppk across sat keysets.
-	 *
-	 * Iterates because covering a fee adds proofs, which increases the fee.
-	 */
-	private function estimate_input_fee_sats( int $amount_sats ): int {
-		$ppk    = $this->get_max_input_fee_ppk();
-		$proofs = $this->proof_count_optimal_split( $amount_sats );
-
-		// Set lower bound: fee for paying the amount of proofs
-		// plus a "1 proof" ppk fee buffer (ie a rounded up ppk fee).
-		$buffer   = intdiv( $ppk + 999, 1000 );
-		$fee_sats = intdiv( ( $proofs * $ppk ) + 999, 1000 ) + $buffer;
-
-		// Find the optimal fee that covers "fee-fees" too
-		while ( true ) {
-			$proofs_for_fee    = $this->proof_count_optimal_split( $fee_sats );
-			$total_proofs      = $proofs + $proofs_for_fee;
-			$required_fee_sats = intdiv( ( $total_proofs * $ppk ) + 999, 1000 );
-			if ( $required_fee_sats <= $fee_sats ) {
-				return $fee_sats;
-			}
-			++$fee_sats;
-		}
 	}
 
 	public function receipt_page( $order_id ) {
