@@ -45,7 +45,7 @@ type RootData = {
   orderId: number;
   orderKey: string;
   returnUrl: string;
-  expectedPaySats: number; // headline amount user must cover (invoice + fee_reserve)
+  totalToPay: number; // headline amount user must cover (invoice + fee_reserve + ppk fee)
   quoteId: string; // melt quote id (vendor payment)
   quoteExpiryMs: number; // milliseconds, may be 0
   trustedMint: string;
@@ -108,7 +108,7 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
   const orderId = Number($root.data('order-id'));
   const orderKey = String($root.data('order-key') ?? '');
   const returnUrl = String($root.data('return-url') ?? '');
-  const expectedPaySats = Number($root.data('pay-amount-sats') ?? 0);
+  const totalToPay = Number($root.data('total-to-pay') ?? 0);
   const quoteId = String($root.data('melt-quote-id') ?? '');
   const quoteExpiryMs = Number($root.data('spot-quote-expiry') ?? 0) * 1000;
   const trustedMint = String($root.data('trusted-mint') ?? '');
@@ -119,8 +119,8 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
     !orderKey ||
     !returnUrl ||
     !trustedMint ||
-    !Number.isFinite(expectedPaySats) ||
-    expectedPaySats <= 0 ||
+    !Number.isFinite(totalToPay) ||
+    totalToPay <= 0 ||
     !quoteId
   ) {
     throw new Error('Bad order data');
@@ -130,7 +130,7 @@ function readRootData($root: JQuery<HTMLElement>): RootData {
     orderId,
     orderKey,
     returnUrl,
-    expectedPaySats,
+    totalToPay,
     quoteId,
     quoteExpiryMs,
     trustedMint,
@@ -300,9 +300,9 @@ jQuery(function ($) {
     const token = localStorage.getItem(ls.recovery);
     if (token) {
       payFromToken(token).catch((e) => {
-        console.error(e);
-        setStatus(t('recovery_failed'), true);
         $input.val(token);
+        console.error(getErrorMessage(e));
+        setStatus(t('payment_failed'), true);
         localStorage.removeItem(ls.recovery);
       });
     }
@@ -486,11 +486,11 @@ jQuery(function ($) {
       if (storedMintQuoteLooksUsable(cached)) return cached;
 
       const wallet = await trustedWalletP;
-      const mq = await wallet.createMintQuoteBolt11(data.expectedPaySats);
+      const mq = await wallet.createMintQuoteBolt11(data.totalToPay);
 
       const store: StoredMintQuote = {
         mint: data.trustedMint,
-        amount: data.expectedPaySats,
+        amount: data.totalToPay,
         quote: mq.quote,
         request: mq.request,
         expiry: mq.expiry ?? null,
@@ -509,7 +509,7 @@ jQuery(function ($) {
   function storedMintQuoteLooksUsable(mq: StoredMintQuote | null): mq is StoredMintQuote {
     if (!mq) return false;
     if (!mq.quote || !mq.request || !mq.mint) return false;
-    if (mq.amount !== data.expectedPaySats) return false;
+    if (mq.amount !== data.totalToPay) return false;
     if (!sameMint(mq.mint, data.trustedMint)) return false;
 
     const exp = typeof mq.expiry === 'number' ? mq.expiry : 0;
@@ -570,7 +570,7 @@ jQuery(function ($) {
       setStatus(t('payment_received'));
       await delay(500);
       const wallet = await trustedWalletP;
-      const mintedProofs = await wallet.mintProofsBolt11(data.expectedPaySats, mq.quote);
+      const mintedProofs = await wallet.mintProofsBolt11(data.totalToPay, mq.quote);
       deleteJson(ls.mq);
       mqP = null;
       await meltTrustedProofsToVendor(mintedProofs, wallet);
@@ -608,7 +608,8 @@ jQuery(function ($) {
       meltRes = await trustedWallet.meltProofsBolt11(quote, proofs);
     } catch (e) {
       $input.val(token);
-      setStatus(getErrorMessage(e), true);
+      console.error(getErrorMessage(e));
+      setStatus(t('payment_failed'), true);
       return;
     } finally {
       localStorage.removeItem(ls.recovery);

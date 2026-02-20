@@ -144,7 +144,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 					'waiting_for_payment'  => __( 'Waiting for payment...', 'cashu-for-woocommerce' ),
 
 					// Recovery flow
-					'recovery_failed'      => __( 'Payment failed. Please copy the new token from the form input below.', 'cashu-for-woocommerce' ),
+					'payment_failed'       => __( 'Payment failed. Please copy the new token from the form input below.', 'cashu-for-woocommerce' ),
 
 					// Token validation / connection
 					'checking_token'       => __( 'Checking token...', 'cashu-for-woocommerce' ),
@@ -347,6 +347,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 		$order->delete_meta_data( '_cashu_melt_quote_id' );
 		$order->delete_meta_data( '_cashu_melt_quote_expiry' );
 		$order->delete_meta_data( '_cashu_melt_total' );
+		$order->delete_meta_data( '_cashu_melt_fees' );
 		$order->delete_meta_data( '_cashu_melt_mint' );
 
 		$order->add_order_note(
@@ -597,11 +598,11 @@ class CashuGateway extends \WC_Payment_Gateway {
 			}
 		}
 
-		$pay_amount_sats = absint( $order->get_meta( '_cashu_melt_total', true ) );
-		$pay_fees_sats   = absint( $order->get_meta( '_cashu_melt_fees', true ) );
-		$pay_total       = $pay_amount_sats + $pay_fees_sats;
-		$quote_id        = (string) $order->get_meta( '_cashu_melt_quote_id', true );
-		$trusted_mint    = (string) $order->get_meta( '_cashu_melt_mint', true );
+		$melt_total   = absint( $order->get_meta( '_cashu_melt_total', true ) );
+		$melt_fees    = absint( $order->get_meta( '_cashu_melt_fees', true ) );
+		$quote_id     = (string) $order->get_meta( '_cashu_melt_quote_id', true );
+		$trusted_mint = (string) $order->get_meta( '_cashu_melt_mint', true );
+		$total_to_pay = $melt_total + $melt_fees;
 
 		wp_enqueue_script( 'cashu-qrcode' );
 		wp_enqueue_script( 'cashu-checkout' );
@@ -611,8 +612,8 @@ class CashuGateway extends \WC_Payment_Gateway {
 			data-order-id="' . esc_attr( $order_id ) . '"
 			data-order-key="' . esc_attr( $order->get_order_key() ) . '"
 			data-return-url="' . esc_url( $this->get_return_url( $order ) ) . '"
-			data-pay-amount-sats="' . esc_attr( $pay_total ) . '"
-			data-pay-fees-sats="' . esc_attr( $pay_fees_sats ) . '"
+			data-total-to-pay="' . esc_attr( $total_to_pay ) . '"
+			data-pay-fees-sats="' . esc_attr( $melt_fees ) . '"
 			data-melt-quote-id="' . esc_attr( $quote_id ) . '"
 			data-spot-quote-expiry="' . esc_attr( $spot_expiry ) . '"
 			data-trusted-mint="' . esc_attr( $trusted_mint ) . '"
@@ -623,7 +624,7 @@ class CashuGateway extends \WC_Payment_Gateway {
 			<div class="cashu-amount-box cashu-center">
 				<div class="cashu-payamount"><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></div>
 				<h2 class="cashu-amount">
-					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_total ); ?>
+					<?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $total_to_pay ); ?>
 				</h2>
 
 				<?php $details_id = 'payment-details-' . sanitize_key( $order_id ); ?>
@@ -631,17 +632,17 @@ class CashuGateway extends \WC_Payment_Gateway {
 					<dl class="payment-dl">
 						<div class="payment-row">
 							<dt><?php esc_html_e( 'Total Price', 'cashu-for-woocommerce' ); ?></dt>
-							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_amount_sats ); ?></dd>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $melt_total ); ?></dd>
 						</div>
 
 						<div class="payment-row">
 							<dt><?php esc_html_e( 'Network Cost (est)', 'cashu-for-woocommerce' ); ?></dt>
-							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_fees_sats ); ?></dd>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $melt_fees ); ?></dd>
 						</div>
 
 						<div class="payment-row">
 							<dt><?php esc_html_e( 'Amount Due', 'cashu-for-woocommerce' ); ?></dt>
-							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $pay_total ); ?></dd>
+							<dd><?php echo esc_html( CASHU_WC_BIP177_SYMBOL . $total_to_pay ); ?></dd>
 						</div>
 					</dl>
 					<div class="payment-row">
